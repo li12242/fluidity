@@ -62,8 +62,8 @@ pr = _sage_const_1
 ab = _sage_const_1 
 bo = _sage_const_1 
 
-Ske1 = rho1*u1*diff(ke1,x) + rho1*v1*diff(ke1,y) - (nu1 + nu_T1)*(diff(ke1, x, x) + diff(ke1, y, y)) - diff(nu_T1, x)*diff(ke1, x) -  diff(nu_T1, y)*diff(ke1, y) - pr*P1 + ab*rho1*eps1 - bo*B1
-Seps1 = rho1*u1*diff(eps1,x) + rho1*v1*diff(eps1,y) - (nu1 + nu_T1)*(diff(eps1, x, x) + diff(eps1, y, y)) - diff(nu_T1, x)*diff(eps1, x) -  diff(nu_T1, y)*diff(eps1, y) - pr*(eps1/ke1)*P1 + ab*rho1*(eps1**_sage_const_2 /ke1) - bo*C3*(eps1/ke1)*B1
+Ske1 = vfrac1*rho1*u1*diff(ke1,x) + vfrac1*rho1*v1*diff(ke1,y) - (nu1 + nu_T1)*(diff(ke1, x, x) + diff(ke1, y, y)) - diff(nu_T1, x)*diff(ke1, x) -  diff(nu_T1, y)*diff(ke1, y) - pr*P1 + ab*rho1*eps1 - bo*B1
+Seps1 = vfrac1*rho1*u1*diff(eps1,x) + vfrac1*rho1*v1*diff(eps1,y) - (nu1 + nu_T1)*(diff(eps1, x, x) + diff(eps1, y, y)) - diff(nu_T1, x)*diff(eps1, x) -  diff(nu_T1, y)*diff(eps1, y) - pr*(eps1/ke1)*P1 + ab*rho1*(eps1**_sage_const_2 /ke1) - bo*C3*(eps1/ke1)*B1
   
   
 ##### Phase 2 #####
@@ -111,8 +111,8 @@ pr = _sage_const_1
 ab = _sage_const_1 
 bo = _sage_const_1 
 
-Ske2 = rho2*u2*diff(ke2,x) + rho2*v2*diff(ke2,y) - (nu2 + nu_T2)*(diff(ke2, x, x) + diff(ke2, y, y)) - diff(nu_T2, x)*diff(ke2, x) -  diff(nu_T2, y)*diff(ke2, y) - pr*P2 + ab*rho2*eps2 - bo*B2
-Seps2 = rho2*u2*diff(eps2,x) + rho2*v2*diff(eps2,y) - (nu2 + nu_T2)*(diff(eps2, x, x) + diff(eps2, y, y)) - diff(nu_T2, x)*diff(eps2, x) -  diff(nu_T2, y)*diff(eps2, y) - pr*(eps2/ke2)*P2 + ab*rho2*(eps2**_sage_const_2 /ke2) - bo*C3*(eps2/ke2)*B2
+Ske2 = vfrac2*rho2*u2*diff(ke2,x) + vfrac2*rho2*v2*diff(ke2,y) - (nu2 + nu_T2)*(diff(ke2, x, x) + diff(ke2, y, y)) - diff(nu_T2, x)*diff(ke2, x) -  diff(nu_T2, y)*diff(ke2, y) - pr*P2 + ab*rho2*eps2 - bo*B2
+Seps2 = vfrac2*rho2*u2*diff(eps2,x) + vfrac2*rho2*v2*diff(eps2,y) - (nu2 + nu_T2)*(diff(eps2, x, x) + diff(eps2, y, y)) - diff(nu_T2, x)*diff(eps2, x) -  diff(nu_T2, y)*diff(eps2, y) - pr*(eps2/ke2)*P2 + ab*rho2*(eps2**_sage_const_2 /ke2) - bo*C3*(eps2/ke2)*B2
 
 print 'from math import sin, cos, tanh, pi'
 print ''
