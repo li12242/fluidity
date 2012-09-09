@@ -46,6 +46,7 @@ module k_epsilon
   use FLDebug
   use vtk_interfaces
   use solvers
+  use multiphase_module
 
 implicit none
 
@@ -53,7 +54,8 @@ implicit none
 
   ! locally allocatad fields
   real, save     :: fields_min = 1.0e-11
-  logical, save  :: low_Re = .false.                     
+  logical, save  :: low_Re = .false.   
+  logical, save  :: multiphase
 
   public :: keps_advdif_diagnostics, keps_momentum_diagnostics, keps_bcs, &
        & k_epsilon_check_options, tensor_inner_product
@@ -210,7 +212,8 @@ subroutine keps_calculate_rhs(state)
   type(scalar_field), pointer :: src, abs, f_1, f_2, debug
   type(scalar_field) :: src_to_abs
   type(vector_field), pointer :: x, u, g
-  type(scalar_field), pointer :: dummydensity, density, buoyancy_density, scalar_eddy_visc
+  type(scalar_field), pointer :: dummydensity, density, buoyancy_density, scalar_eddy_visc, vfrac
+  type(scalar_field) :: nvfrac
   integer :: i, ele, term, stat
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_p
   logical :: have_buoyancy_turbulence = .true., lump_mass
@@ -267,6 +270,19 @@ subroutine keps_calculate_rhs(state)
      buoyancy_density => extract_scalar_field(state, 'VelocityBuoyancyDensity')
   end if
 
+  ! PhaseVolumeFraction for multiphase flow simulations
+  if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+     multiphase = .true.
+     vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+     call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
+     call zero(nvfrac)
+     call get_nonlinear_volume_fraction(state, nvfrac)
+  else
+     multiphase = .false.
+     call allocate(nvfrac, X%mesh, "DummyNonlinearPhaseVolumeFraction", field_type=FIELD_TYPE_CONSTANT)
+     call set(nvfrac, 1.0)
+  end if
+  
   field_names(1) = 'TurbulentKineticEnergy'
   field_names(2) = 'TurbulentDissipation'
 
@@ -296,7 +312,7 @@ subroutine keps_calculate_rhs(state)
      ! Assembly loop
      do ele = 1, ele_count(fields(1))
         call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
-             density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, x, &
+             density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, nvfrac, x, &
              c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i)
      end do
 
@@ -374,17 +390,18 @@ subroutine keps_calculate_rhs(state)
   
   call deallocate(dummydensity)
   deallocate(dummydensity)
+  call deallocate(nvfrac)
 
 end subroutine keps_calculate_rhs
     
 !------------------------------------------------------------------------------!
 
 subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density, &
-     buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, &
+     buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, nvfrac, &
      X, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, field_id)
 
   type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
-  type(scalar_field), intent(in) :: k, eps, scalar_eddy_visc, f_1, f_2
+  type(scalar_field), intent(in) :: k, eps, scalar_eddy_visc, f_1, f_2, nvfrac
   type(vector_field), intent(in) :: X, u, g
   type(scalar_field), intent(in) :: density, buoyancy_density
   real, intent(in) :: g_magnitude, c_eps_1, c_eps_2, sigma_p
@@ -438,15 +455,23 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   if (field_id==2) then
      rhs = rhs*c_eps_1*ele_val_at_quad(f_1,ele)*eps_ele/k_ele
   end if
-  rhs_addto(1,:) = shape_rhs(shape, detwei*rhs)
+  if(multiphase) then
+     rhs_addto(1,:) = shape_rhs(shape, detwei*rhs*ele_val_at_quad(nvfrac,ele))
+  else
+     rhs_addto(1,:) = shape_rhs(shape, detwei*rhs)
+  end if
 
   ! A:
   rhs = -1.0*eps_ele*ele_val_at_quad(density, ele)
   if (field_id==2) then
      rhs = rhs*c_eps_2*ele_val_at_quad(f_2,ele)*eps_ele/k_ele
   end if
-  rhs_addto(2,:) = shape_rhs(shape, detwei*rhs)
-
+  if(multiphase) then
+     rhs_addto(2,:) = shape_rhs(shape, detwei*rhs*ele_val_at_quad(nvfrac,ele))
+  else
+     rhs_addto(2,:) = shape_rhs(shape, detwei*rhs)
+  end if
+  
   ! Gk:  
   ! Calculate buoyancy turbulence term and add to addto array
   if(have_buoyancy_turbulence) then    
@@ -488,7 +513,11 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
     end if
 
     ! multiply by determinate weights, integrate and assign to rhs
-    rhs_addto(3,:) = shape_rhs(shape, scalar * detwei)
+    if(multiphase) then
+       rhs_addto(3,:) = shape_rhs(shape, scalar * detwei * ele_val_at_quad(nvfrac,ele))
+    else
+       rhs_addto(3,:) = shape_rhs(shape, scalar * detwei)
+    end if
     
     deallocate(dshape_density)
     
