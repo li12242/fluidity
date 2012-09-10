@@ -46,7 +46,6 @@ module k_epsilon
   use FLDebug
   use vtk_interfaces
   use solvers
-  use multiphase_module
 
 implicit none
 
@@ -54,8 +53,7 @@ implicit none
 
   ! locally allocatad fields
   real, save     :: fields_min = 1.0e-11
-  logical, save  :: low_Re = .false.   
-  logical, save  :: multiphase
+  logical, save  :: low_Re = .false.
 
   public :: keps_advdif_diagnostics, keps_momentum_diagnostics, keps_bcs, &
        & k_epsilon_check_options, tensor_inner_product
@@ -213,10 +211,9 @@ subroutine keps_calculate_rhs(state)
   type(scalar_field) :: src_to_abs
   type(vector_field), pointer :: x, u, g
   type(scalar_field), pointer :: dummydensity, density, buoyancy_density, scalar_eddy_visc, vfrac
-  type(scalar_field) :: nvfrac
   integer :: i, ele, term, stat
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_p
-  logical :: have_buoyancy_turbulence = .true., lump_mass
+  logical :: have_buoyancy_turbulence = .true., lump_mass, multiphase
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN), dimension(2) :: field_names
   character(len=FIELD_NAME_LEN) :: equation_type, implementation
@@ -274,13 +271,8 @@ subroutine keps_calculate_rhs(state)
   if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
      multiphase = .true.
      vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
-     call allocate(nvfrac, vfrac%mesh, "NonlinearPhaseVolumeFraction")
-     call zero(nvfrac)
-     call get_nonlinear_volume_fraction(state, nvfrac)
   else
      multiphase = .false.
-     call allocate(nvfrac, X%mesh, "DummyNonlinearPhaseVolumeFraction", field_type=FIELD_TYPE_CONSTANT)
-     call set(nvfrac, 1.0)
   end if
   
   field_names(1) = 'TurbulentKineticEnergy'
@@ -312,8 +304,8 @@ subroutine keps_calculate_rhs(state)
      ! Assembly loop
      do ele = 1, ele_count(fields(1))
         call assemble_rhs_ele(src_abs_terms, fields(i), fields(3-i), scalar_eddy_visc, u, &
-             density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, nvfrac, x, &
-             c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i)
+             density, buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, &
+             vfrac, x, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, i)
      end do
 
      ! For non-DG we apply inverse mass globally
@@ -390,22 +382,21 @@ subroutine keps_calculate_rhs(state)
   
   call deallocate(dummydensity)
   deallocate(dummydensity)
-  call deallocate(nvfrac)
 
 end subroutine keps_calculate_rhs
     
 !------------------------------------------------------------------------------!
 
 subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density, &
-     buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, nvfrac, &
+     buoyancy_density, have_buoyancy_turbulence, g, g_magnitude, multiphase, vfrac, &
      X, c_eps_1, c_eps_2, sigma_p, f_1, f_2, ele, field_id)
 
   type(scalar_field), dimension(3), intent(inout) :: src_abs_terms
-  type(scalar_field), intent(in) :: k, eps, scalar_eddy_visc, f_1, f_2, nvfrac
+  type(scalar_field), intent(in) :: k, eps, scalar_eddy_visc, f_1, f_2, vfrac
   type(vector_field), intent(in) :: X, u, g
   type(scalar_field), intent(in) :: density, buoyancy_density
   real, intent(in) :: g_magnitude, c_eps_1, c_eps_2, sigma_p
-  logical, intent(in) :: have_buoyancy_turbulence
+  logical, intent(in) :: have_buoyancy_turbulence, multiphase
   integer, intent(in) :: ele, field_id
 
   real, dimension(ele_loc(k, ele), ele_ngi(k, ele), x%dim) :: dshape
@@ -456,7 +447,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
      rhs = rhs*c_eps_1*ele_val_at_quad(f_1,ele)*eps_ele/k_ele
   end if
   if(multiphase) then
-     rhs_addto(1,:) = shape_rhs(shape, detwei*rhs*ele_val_at_quad(nvfrac,ele))
+     rhs_addto(1,:) = shape_rhs(shape, detwei*rhs*ele_val_at_quad(vfrac,ele))
   else
      rhs_addto(1,:) = shape_rhs(shape, detwei*rhs)
   end if
@@ -467,7 +458,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
      rhs = rhs*c_eps_2*ele_val_at_quad(f_2,ele)*eps_ele/k_ele
   end if
   if(multiphase) then
-     rhs_addto(2,:) = shape_rhs(shape, detwei*rhs*ele_val_at_quad(nvfrac,ele))
+     rhs_addto(2,:) = shape_rhs(shape, detwei*rhs*ele_val_at_quad(vfrac,ele))
   else
      rhs_addto(2,:) = shape_rhs(shape, detwei*rhs)
   end if
@@ -514,7 +505,7 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
 
     ! multiply by determinate weights, integrate and assign to rhs
     if(multiphase) then
-       rhs_addto(3,:) = shape_rhs(shape, scalar * detwei * ele_val_at_quad(nvfrac,ele))
+       rhs_addto(3,:) = shape_rhs(shape, scalar * detwei * ele_val_at_quad(vfrac,ele))
     else
        rhs_addto(3,:) = shape_rhs(shape, scalar * detwei)
     end if
@@ -754,9 +745,12 @@ subroutine keps_diffusion(state)
   type(state_type), intent(inout)   :: state
 
   type(tensor_field), pointer :: diff, bg_visc, eddy_visc
+  type(scalar_field), pointer :: vfrac
+  type(scalar_field) :: remapvfrac
   real :: sigma_k, sigma_eps
   integer :: i, j
   character(len=OPTION_PATH_LEN) :: option_path 
+  logical :: multiphase
 
   ewrite(1,*) 'in keps_diffusion'
   
@@ -764,26 +758,52 @@ subroutine keps_diffusion(state)
 
   eddy_visc => extract_tensor_field(state, "EddyViscosity")
   bg_visc => extract_tensor_field(state, "BackgroundViscosity")
+  
   call get_option(trim(option_path)//'/sigma_k', sigma_k, default = 1.0)
   call get_option(trim(option_path)//'/sigma_eps', sigma_eps, default = 1.3)
 
   ! Set diffusivity
   diff => extract_tensor_field(state, "TurbulentKineticEnergyDiffusivity")
+  
+  ! PhaseVolumeFraction for multiphase flow simulations
+  if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+     multiphase = .true.
+     vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+     call allocate(remapvfrac, diff%mesh, "RemppedPhaseVolumeFraction")
+     call remap_field(vfrac, remapvfrac)
+  else
+     multiphase = .false.
+  end if
+  
   call zero(diff)
   do i = 1, node_count(diff)
      do j = 1, diff%dim(1)
-        call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
-        call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) / sigma_k)
+        if(multiphase) then
+           call addto(diff, j, j, i, node_val(bg_visc, j, j, i)*node_val(remapvfrac, i))
+           call addto(diff, j, j, i, node_val(eddy_visc, j, j, i)*node_val(remapvfrac, i) / sigma_k)
+        else
+           call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
+           call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) / sigma_k)
+        end if
      end do
   end do
   diff => extract_tensor_field(state, "TurbulentDissipationDiffusivity")
   call zero(diff)
   do i = 1, node_count(diff)
      do j = 1, diff%dim(1)
-        call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
-        call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) / sigma_eps)
+        if(multiphase) then
+           call addto(diff, j, j, i, node_val(bg_visc, j, j, i)*node_val(remapvfrac, i))
+           call addto(diff, j, j, i, node_val(eddy_visc, j, j, i)*node_val(remapvfrac, i) / sigma_eps)
+        else   
+           call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
+           call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) / sigma_eps)
+        end if
      end do
   end do
+  
+  if(multiphase) then
+     call deallocate(remapvfrac)
+  end if
 
 end subroutine keps_diffusion
 
@@ -880,12 +900,12 @@ subroutine keps_momentum_source(state)
 
   type(state_type), intent(inout)  :: state
   
-  type(scalar_field), pointer :: dummydensity, density
+  type(scalar_field), pointer :: dummydensity, density, vfrac
   type(scalar_field) :: k
   type(vector_field), pointer :: source, x, u
   type(vector_field) :: rhs
   integer :: i
-  logical :: lump_mass
+  logical :: lump_mass, multiphase
   character(len=OPTION_PATH_LEN) :: option_path 
   character(len=FIELD_NAME_LEN)    :: equation_type
 
@@ -933,6 +953,14 @@ subroutine keps_momentum_source(state)
         FLAbort("Unknown equation type for velocity")
   end select
 
+  ! PhaseVolumeFraction for multiphase flow simulations
+  if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
+     multiphase = .true.
+     vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+  else
+     multiphase = .false.
+  end if
+  
   call allocate(rhs, source%dim, source%mesh, name='TempSource')
   call zero(rhs)
   do i = 1, ele_count(k)
@@ -960,13 +988,15 @@ subroutine keps_momentum_source(state)
       
     real, dimension(ele_loc(k, i), ele_ngi(k, i), x%dim) :: dshape_k
     real, dimension(ele_loc(density, i), ele_ngi(density, i), x%dim) :: dshape_density
+    real, dimension(ele_loc(vfrac, i), ele_ngi(vfrac, i), x%dim) :: dshape_vfrac
     real, dimension(ele_ngi(k, i)) :: detwei
     integer, dimension(ele_loc(k, i)) :: nodes
     real, dimension(ele_loc(k, i), ele_loc(k, i)) :: invmass
-    type(element_type), pointer :: shape_k, shape_density
+    type(element_type), pointer :: shape_k, shape_density, shape_vfrac
     real, dimension(x%dim, ele_loc(k, i)) :: rhs_addto
     real, dimension(x%dim, ele_ngi(k, i)) :: grad_k
     real, dimension(x%dim, ele_ngi(density, i)) :: grad_density
+    real, dimension(x%dim, ele_ngi(density, i)) :: grad_vfrac
 
     shape_k => ele_shape(k, i)
     nodes = ele_nodes(source, i)
@@ -979,15 +1009,34 @@ subroutine keps_momentum_source(state)
     else
        dshape_density = dshape_k
     end if
+    
+    if(multiphase) then
+      if(.not.(vfrac%mesh == k%mesh)) then
+         shape_vfrac => ele_shape(vfrac, i)
+         call transform_to_physical( x, i, shape_vfrac, dshape=dshape_vfrac ) 
+      else
+         dshape_vfrac = dshape_k
+      end if
+    end if
      
     grad_k = ele_grad_at_quad(k, i, dshape_k)
     grad_density = ele_grad_at_quad(density, i, dshape_density)
+    if(multiphase) then
+       grad_vfrac = ele_grad_at_quad(vfrac, i, dshape_vfrac)
+    end if
     ! IMPORTANT: This gets added to the VelocitySource term. In Momentum_CG/DG.F90
     ! the VelocitySource gets multiplied by the Density field, so we have
     ! divided through by Density here in order to cancel this out
     ! and get the desired result.
-    rhs_addto = shape_vector_rhs(shape_k, -(2./3.)*grad_k, detwei) + &
-                shape_vector_rhs(shape_k, -(2./3.)*grad_density, detwei*ele_val_at_quad(k,i)/ele_val_at_quad(density,i)) 
+    if(multiphase) then
+      rhs_addto = shape_vector_rhs(shape_k, -(2./3.)*grad_k, detwei*ele_val_at_quad(vfrac,i)) + &
+                  shape_vector_rhs(shape_k, -(2./3.)*grad_density, detwei*ele_val_at_quad(vfrac,i)* &
+                  ele_val_at_quad(k,i)/ele_val_at_quad(density,i)) + &
+                  shape_vector_rhs(shape_k, -(2./3.)*grad_vfrac, detwei*ele_val_at_quad(k,i)) 
+    else
+      rhs_addto = shape_vector_rhs(shape_k, -(2./3.)*grad_k, detwei) + &
+                  shape_vector_rhs(shape_k, -(2./3.)*grad_density, detwei*ele_val_at_quad(k,i)/ele_val_at_quad(density,i))
+    end if
       
     ! In the DG case we apply the inverse mass locally.
     if(continuity(k)<0) then
