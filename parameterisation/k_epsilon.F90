@@ -959,6 +959,7 @@ subroutine keps_momentum_source(state)
      vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
   else
      multiphase = .false.
+     vfrac => density
   end if
   
   call allocate(rhs, source%dim, source%mesh, name='TempSource')
