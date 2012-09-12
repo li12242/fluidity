@@ -1312,7 +1312,7 @@ subroutine time_averaged_value(state, A, field_name, advdif, option_path)
   real :: theta
   type(scalar_field), pointer :: old, iterated
   
-  call get_option(trim(option_path)//'time_discretisation/theta', theta)
+  call get_option(trim(option_path)//'/time_discretisation/theta', theta)
 
   old => extract_scalar_field(state, "Old"//trim(field_name))
   if (advdif) then
