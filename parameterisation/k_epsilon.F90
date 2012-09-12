@@ -208,9 +208,9 @@ subroutine keps_calculate_rhs(state)
   type(scalar_field), dimension(3) :: src_abs_terms
   type(scalar_field), dimension(2) :: fields
   type(scalar_field), pointer :: src, abs, f_1, f_2, debug
-  type(scalar_field) :: src_to_abs
+  type(scalar_field) :: src_to_abs, vfrac
   type(vector_field), pointer :: x, u, g
-  type(scalar_field), pointer :: dummydensity, density, buoyancy_density, scalar_eddy_visc, vfrac
+  type(scalar_field), pointer :: dummydensity, density, buoyancy_density, scalar_eddy_visc
   integer :: i, ele, term, stat
   real :: g_magnitude, c_eps_1, c_eps_2, sigma_p
   logical :: have_buoyancy_turbulence = .true., lump_mass, multiphase
@@ -270,7 +270,7 @@ subroutine keps_calculate_rhs(state)
   ! PhaseVolumeFraction for multiphase flow simulations
   if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
      multiphase = .true.
-     vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+     call time_averaged_value(state, vfrac, "PhaseVolumeFraction", .true., option_path)
   else
      multiphase = .false.
   end if
@@ -382,6 +382,10 @@ subroutine keps_calculate_rhs(state)
   
   call deallocate(dummydensity)
   deallocate(dummydensity)
+  
+  if(multiphase) then
+     call deallocate(vfrac)
+  end if
 
 end subroutine keps_calculate_rhs
     
@@ -745,8 +749,7 @@ subroutine keps_diffusion(state)
   type(state_type), intent(inout)   :: state
 
   type(tensor_field), pointer :: diff, bg_visc, eddy_visc
-  type(scalar_field), pointer :: vfrac
-  type(scalar_field) :: remapvfrac
+  type(scalar_field) :: vfrac, remapvfrac
   real :: sigma_k, sigma_eps
   integer :: i, j
   character(len=OPTION_PATH_LEN) :: option_path 
@@ -768,7 +771,7 @@ subroutine keps_diffusion(state)
   ! PhaseVolumeFraction for multiphase flow simulations
   if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
      multiphase = .true.
-     vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+     call time_averaged_value(state, vfrac, "PhaseVolumeFraction", .true., option_path)
      call allocate(remapvfrac, diff%mesh, "RemppedPhaseVolumeFraction")
      call remap_field(vfrac, remapvfrac)
   else
@@ -803,6 +806,7 @@ subroutine keps_diffusion(state)
   
   if(multiphase) then
      call deallocate(remapvfrac)
+     call deallocate(vfrac)
   end if
 
 end subroutine keps_diffusion
@@ -900,8 +904,8 @@ subroutine keps_momentum_source(state)
 
   type(state_type), intent(inout)  :: state
   
-  type(scalar_field), pointer :: dummydensity, density, vfrac
-  type(scalar_field) :: k
+  type(scalar_field), pointer :: dummydensity, density
+  type(scalar_field) :: k, vfrac
   type(vector_field), pointer :: source, x, u
   type(vector_field) :: rhs
   integer :: i
@@ -956,10 +960,10 @@ subroutine keps_momentum_source(state)
   ! PhaseVolumeFraction for multiphase flow simulations
   if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
      multiphase = .true.
-     vfrac => extract_scalar_field(state, "PhaseVolumeFraction")
+     call time_averaged_value(state, vfrac, "PhaseVolumeFraction", .true., option_path)
   else
      multiphase = .false.
-     vfrac => density
+     vfrac = density
   end if
   
   call allocate(rhs, source%dim, source%mesh, name='TempSource')
@@ -982,6 +986,10 @@ subroutine keps_momentum_source(state)
   call deallocate(k)
   call deallocate(dummydensity)
   deallocate(dummydensity)
+  
+  if(multiphase) then
+     call deallocate(vfrac)
+  end if
 
  contains
     
@@ -1058,14 +1066,14 @@ end subroutine keps_momentum_source
 
 subroutine keps_bcs(state)
 
-  type(state_type), intent(in)               :: state
+  type(state_type), intent(inout)            :: state
   type(scalar_field), pointer                :: field1, field2    ! k or epsilon
   type(scalar_field), pointer                :: f_1, f_2, f_mu
   type(scalar_field), pointer                :: surface_field, scalar_eddy_visc
   type(scalar_field), pointer                :: density, dummydensity
   type(vector_field), pointer                :: X, u
   type(tensor_field), pointer                :: bg_visc
-  type(scalar_field)                         :: rhs_field, surface_values, masslump
+  type(scalar_field)                         :: rhs_field, surface_values
   type(mesh_type), pointer                   :: surface_mesh
   integer                                    :: i, j, sele, index, nbcs, stat
   integer, dimension(:), pointer             :: surface_elements, surface_node_list
@@ -1073,6 +1081,7 @@ subroutine keps_bcs(state)
   character(len=OPTION_PATH_LEN)             :: bc_path, bc_path_i, option_path 
   real                                       :: c_mu
   character(len=FIELD_NAME_LEN)              :: equation_type
+  logical                                    :: lump_mass
 
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
@@ -1153,24 +1162,16 @@ subroutine keps_bcs(state)
            call allocate(rhs_field, field1%mesh, name="rhs")
            call zero(surface_values); call zero(rhs_field)
 
-           if(continuity(field1)>=0) then
-              call allocate(masslump, field1%mesh, 'Masslump')
-              call zero(masslump)
-           end if
-
            ! Calculate high-Re wall function
            do sele = 1, ele_count(surface_mesh)
-              call keps_wall_function(field1, X, u, masslump, scalar_eddy_visc, density, sele, &
+              call keps_wall_function(field1, X, u, scalar_eddy_visc, density, sele, &
                    index, c_mu, rhs_field)
            end do
            
            ! In the continuous case we globally apply inverse mass
            if(continuity(field1)>=0) then
-             where (masslump%val/=0.0)
-               masslump%val=1./masslump%val
-             end where
-             call scale(rhs_field, masslump)
-             call deallocate(masslump)
+             lump_mass = have_option(trim(option_path)//'mass_terms/lump_mass')
+             call solve_cg_inv_mass(state, rhs_field, lump_mass, option_path)  
            end if
 
            ! Put values onto surface mesh
@@ -1194,11 +1195,11 @@ end subroutine keps_bcs
 !--------------------------------------------------------------------------------!
 ! Only used if bc type == k_epsilon for field and high_Re.                       !
 !--------------------------------------------------------------------------------!
-subroutine keps_wall_function(field1,X,U,masslump,scalar_eddy_visc,density,sele,index,c_mu,rhs_field)
+subroutine keps_wall_function(field1,X,U,scalar_eddy_visc,density,sele,index,c_mu,rhs_field)
 
   type(scalar_field), pointer, intent(in)              :: field1, scalar_eddy_visc, density
   type(vector_field), pointer, intent(in)              :: X, U
-  type(scalar_field), intent(inout)                    :: masslump, rhs_field
+  type(scalar_field), intent(inout)                    :: rhs_field
   integer, intent(in)                                  :: sele, index
   type(element_type), pointer                          :: shape, f_shape
   type(element_type)                                   :: augmented_shape
@@ -1283,13 +1284,11 @@ subroutine keps_wall_function(field1,X,U,masslump,scalar_eddy_visc,density,sele,
     rhs = shape_rhs(f_shape, (tau_wall_at_quad/density_at_quad)**1.5/kappa/h*detwei)  
   end if
 
-  fmass = shape_shape(f_shape, f_shape, detwei)
-  ! In the CG case we need to calculate a global lumped mass
-  if(continuity(field1)>=0) then
-    call addto(masslump, nodes_bdy, sum(fmass,1))
-  else ! In the DG case we will apply the inverse mass locally.
+  if(continuity(field1) < 0) then
+    ! In the DG case we will apply the inverse mass locally.
+    fmass = shape_shape(f_shape, f_shape, detwei)
     do i = 1,dim
-    rhs = matmul(inverse(fmass), rhs)
+      rhs = matmul(inverse(fmass), rhs)
     end do
   end if
 
