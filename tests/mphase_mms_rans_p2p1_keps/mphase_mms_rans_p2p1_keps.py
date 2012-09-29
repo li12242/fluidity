@@ -46,8 +46,8 @@ tau_xy_R1 = nu_T1*(diff(u1,y) + diff(v1,x))
 tau_yy_R1 = _sage_const_2 *nu_T1*diff(v1,y)
 tau_yx_R1 = nu_T1*(diff(u1,y) + diff(v1,x))
 
-Su1 = vfrac1*rho1*u1*diff(u1,x) + vfrac1*rho1*v1*diff(u1,y) - diff(vfrac1*tau_xx1, x) - diff(vfrac1*tau_xy1, y) - diff(vfrac1*tau_xx_R1, x) - diff(vfrac1*tau_xy_R1, y) + (_sage_const_2p /_sage_const_3p )*diff(vfrac1*ke1*rho1,x) - vfrac1*rho1 + vfrac1*diff(p,x)  
-Sv1 = vfrac1*rho1*u1*diff(v1,x) + vfrac1*rho1*v1*diff(v1,y) - diff(vfrac1*tau_yx1, x) - diff(vfrac1*tau_yy1, y) - diff(vfrac1*tau_yx_R1, x) - diff(vfrac1*tau_yy_R1, y) + (_sage_const_2p /_sage_const_3p )*diff(vfrac1*ke1*rho1,y) - vfrac1*rho1 + vfrac1*diff(p,y)  
+Su1 = vfrac1*rho1*u1*diff(u1,x) + vfrac1*rho1*v1*diff(u1,y) - diff(vfrac1*tau_xx1, x) - diff(vfrac1*tau_xy1, y) - diff(vfrac1*tau_xx_R1, x) - diff(vfrac1*tau_xy_R1, y) - vfrac1*rho1 + vfrac1*diff(p,x)  
+Sv1 = vfrac1*rho1*u1*diff(v1,x) + vfrac1*rho1*v1*diff(v1,y) - diff(vfrac1*tau_yx1, x) - diff(vfrac1*tau_yy1, y) - diff(vfrac1*tau_yx_R1, x) - diff(vfrac1*tau_yy_R1, y) - vfrac1*rho1 + vfrac1*diff(p,y)  
 
 Stemperature1 = u1*diff(temperature1,x) + v1*diff(temperature1,y) - (_sage_const_1p0  + nu_T1)*(diff(temperature1, x, x) + diff(temperature1, y, y)) - diff(nu_T1, x)*diff(temperature1, x) -  diff(nu_T1, y)*diff(temperature1, y)
 
@@ -95,8 +95,8 @@ tau_xy_R2 = nu_T2*(diff(u2,y) + diff(v2,x))
 tau_yy_R2 = _sage_const_2 *nu_T2*diff(v2,y)
 tau_yx_R2 = nu_T2*(diff(u2,y) + diff(v2,x))
 
-Su2 = vfrac2*rho2*u2*diff(u2,x) + vfrac2*rho2*v2*diff(u2,y) - diff(vfrac2*tau_xx2, x) - diff(vfrac2*tau_xy2, y) - diff(vfrac2*tau_xx_R2, x) - diff(vfrac2*tau_xy_R2, y) + (_sage_const_2p /_sage_const_3p )*diff(vfrac2*ke2*rho2,x) - vfrac2*rho2 + vfrac2*diff(p,x)  
-Sv2 = vfrac2*rho2*u2*diff(v2,x) + vfrac2*rho2*v2*diff(v2,y) - diff(vfrac2*tau_yx2, x) - diff(vfrac2*tau_yy2, y) - diff(vfrac2*tau_yx_R2, x) - diff(vfrac2*tau_yy_R2, y) + (_sage_const_2p /_sage_const_3p )*diff(vfrac2*ke2*rho2,y) - vfrac2*rho2 + vfrac2*diff(p,y)  
+Su2 = vfrac2*rho2*u2*diff(u2,x) + vfrac2*rho2*v2*diff(u2,y) - diff(vfrac2*tau_xx2, x) - diff(vfrac2*tau_xy2, y) - diff(vfrac2*tau_xx_R2, x) - diff(vfrac2*tau_xy_R2, y) - vfrac2*rho2 + vfrac2*diff(p,x)  
+Sv2 = vfrac2*rho2*u2*diff(v2,x) + vfrac2*rho2*v2*diff(v2,y) - diff(vfrac2*tau_yx2, x) - diff(vfrac2*tau_yy2, y) - diff(vfrac2*tau_yx_R2, x) - diff(vfrac2*tau_yy_R2, y) - vfrac2*rho2 + vfrac2*diff(p,y)  
 
 Stemperature2 = u2*diff(temperature2,x) + v2*diff(temperature2,y) - (_sage_const_1p0  + nu_T2)*(diff(temperature2, x, x) + diff(temperature2, y, y)) - diff(nu_T2, x)*diff(temperature2, x) -  diff(nu_T2, y)*diff(temperature2, y)
 
