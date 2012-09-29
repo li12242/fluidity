@@ -53,7 +53,7 @@ implicit none
 
   ! locally allocatad fields
   real, save     :: fields_min = 1.0e-11
-  logical, save  :: low_Re = .false.
+  logical, save  :: low_Re = .false.                     
 
   public :: keps_advdif_diagnostics, keps_momentum_diagnostics, keps_bcs, &
        & k_epsilon_check_options, tensor_inner_product
@@ -83,8 +83,7 @@ subroutine keps_momentum_diagnostics(state)
   
   call keps_damping_functions(state, advdif=.false.)
   call keps_eddyvisc(state, advdif=.false.)
-  call keps_momentum_source(state)
-
+  
 end subroutine keps_momentum_diagnostics
 
 !--------------------------------------------------------------------------------!
@@ -98,7 +97,7 @@ subroutine keps_damping_functions(state, advdif)
   type(scalar_field) :: k, eps
   type(tensor_field), pointer :: bg_visc
   integer :: node, stat
-  real :: rhs, Re_T, R_y, fields_max
+  real :: f_mu_val, f_1_val, f_2_val, Re_T, R_y, fields_max
   character(len=FIELD_NAME_LEN) :: equation_type
   character(len=OPTION_PATH_LEN) :: option_path
 
@@ -155,39 +154,33 @@ subroutine keps_damping_functions(state, advdif)
 
      node_loop: do node = 1, node_count(k)
 
-        if (node_val(k,node) <= fields_min .or. &
-             & node_val(y,node) <= fields_min .or. &
-             & node_val(bg_visc,1,1,node) <= fields_min .or. &
-             & node_val(density,node) <= fields_min .or. &
-             & node_val(eps,node) <= fields_min) then
-           call set(f_mu, node, 0.0)
-           call set(f_1, node, 0.0)
-           call set(f_2, node, 0.0)
+        ! calc of damping values with error catching
+        if (node_val(bg_visc,1,1,node) <= fields_min) then
+           f_mu_val = 1.0
+           f_1_val = 1.0
+           f_2_val = 1.0
+        else if (node_val(eps,node) <= fields_min) then
+           R_y = (node_val(density,node) * node_val(k,node)**0.5 * node_val(y,node)) / &
+                node_val(bg_visc,1,1,node)
 
-           cycle node_loop
+           f_mu_val = (1.0 - exp(- 0.0165*R_y))**2.0
+           f_1_val = (0.05/node_val(f_mu,node))**3.0 + 1.0
+           f_2_val = 1.0        
+        else 
+           Re_T = (node_val(density,node) * node_val(k,node)**2.0) / &
+                (node_val(eps,node) * node_val(bg_visc,1,1,node))
+           R_y = (node_val(density,node) * node_val(k,node)**0.5 * node_val(y,node)) / &
+                node_val(bg_visc,1,1,node)
+
+           f_mu_val = (1.0 - exp(- 0.0165*R_y))**2.0 * (20.5/Re_T + 1.0)
+           f_1_val = (0.05/f_mu_val)**3.0 + 1.0
+           f_2_val = 1.0 - exp(- Re_T**2.0)
         end if
 
-        Re_T = (node_val(density,node) * node_val(k,node)**2.0) / &
-             (node_val(eps,node) * node_val(bg_visc,1,1,node))
-        R_y = (node_val(density,node) * node_val(k,node)**0.5 * node_val(y,node)) / &
-             node_val(bg_visc,1,1,node)
-        
-        rhs = (- exp(- 0.0165*R_y) + 1.0)**2.0 * (20.5/Re_T + 1.0)
-        if (rhs > 1.0) then
-           call set(f_mu, node, 1.0)
-           call set(f_1, node, 1.0)
-           call set(f_2, node, 1.0)
-           
-           cycle node_loop
-        end if
-        call set(f_mu, node, min(rhs,fields_max))
+        ! limit values of damping functions
+        call set(f_mu, node, min(f_mu_val, 1.0))
+        call set(f_1, node, min(f_1_val, fields_max))
 
-        rhs = (0.05/node_val(f_mu,node))**3.0 + 1.0
-        call set(f_1, node, min(rhs,fields_max))
-
-        rhs = -exp(- Re_T**2.0) + 1.0
-        call set(f_2, node, min(rhs,fields_max))       
-        
      end do node_loop
 
      call deallocate(k)
@@ -382,7 +375,7 @@ subroutine keps_calculate_rhs(state)
   
   call deallocate(dummydensity)
   deallocate(dummydensity)
-  
+
   if(multiphase) then
      call deallocate(vfrac)
   end if
@@ -893,172 +886,6 @@ subroutine keps_tracer_diffusion(state)
   end do
 
 end subroutine keps_tracer_diffusion
-
-!--------------------------------------------------------------------------------!
-! calculates the reynolds stress tensor correction term 
-! - grad(2/3 k rho delta(ij)) 
-! this is added to prescribed momentum source fields or sets diagnostic source 
-! fields 
-!--------------------------------------------------------------------------------!
-subroutine keps_momentum_source(state)
-
-  type(state_type), intent(inout)  :: state
-  
-  type(scalar_field), pointer :: dummydensity, density
-  type(scalar_field) :: k, vfrac
-  type(vector_field), pointer :: source, x, u
-  type(vector_field) :: rhs
-  integer :: i
-  logical :: lump_mass, multiphase
-  character(len=OPTION_PATH_LEN) :: option_path 
-  character(len=FIELD_NAME_LEN)    :: equation_type
-
-  ewrite(1,*) 'In keps_momentum_source'
-
-  option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
-
-  ! exit if there is no k-epsilon model or if the velocity field is prescribed (hence no source term)
-  if (.not.have_option(trim(option_path)) .or. &
-      have_option(trim(state%option_path)//"/vector_field::Velocity/prescribed")) then 
-     return
-  end if
-
-  source => extract_vector_field(state, "VelocitySource")
-  call zero(source)
-
-  ! exit after zero'ing field if zero_reynolds_stress_tensor is disabled
-  ! zero'd because this is what the calling subroutine expects - the calling routine handles reapplying
-  ! prescribed source terms
-  if (have_option(trim(option_path)//'debugging_options/zero_reynolds_stress_tensor')) then 
-     return
-  end if
-  
-  x => extract_vector_field(state, "Coordinate")
-  u => extract_vector_field(state, "NonlinearVelocity")
-  call time_averaged_value(state, k, "TurbulentKineticEnergy", .false., option_path)
-  
-  allocate(dummydensity)
-  call allocate(dummydensity, x%mesh, "DummyDensity", field_type=FIELD_TYPE_CONSTANT)
-  call set(dummydensity, 1.0)
-  dummydensity%option_path = ""
-  
-  ! Depending on the equation type, extract the density or set it to some dummy field allocated above
-  call get_option(trim(state%option_path)//&
-       "/vector_field::Velocity/prognostic/equation[0]/name", equation_type)
-  select case(equation_type)
-     case("LinearMomentum")
-        density=>extract_scalar_field(state, "Density")
-     case("Boussinesq")
-        density=>dummydensity
-     case("Drainage")
-        density=>dummydensity
-     case default
-        ! developer error... out of sync options input and code
-        FLAbort("Unknown equation type for velocity")
-  end select
-
-  ! PhaseVolumeFraction for multiphase flow simulations
-  if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then
-     multiphase = .true.
-     call time_averaged_value(state, vfrac, "PhaseVolumeFraction", .true., option_path)
-  else
-     multiphase = .false.
-     vfrac = density
-  end if
-  
-  call allocate(rhs, source%dim, source%mesh, name='TempSource')
-  call zero(rhs)
-  do i = 1, ele_count(k)
-     call keps_momentum_source_ele()
-  end do
-
-  ! For non-DG we apply inverse mass globally
-  if(continuity(k)>=0) then
-     lump_mass = have_option(trim(option_path)//&
-          'mass_terms/lump_mass')
-     call solve_cg_inv_mass_vector(state, rhs, lump_mass, option_path)  
-     call addto(source, rhs)
-  end if
-
-  ewrite_minmax(source)
-  
-  call deallocate(rhs)
-  call deallocate(k)
-  call deallocate(dummydensity)
-  deallocate(dummydensity)
-  
-  if(multiphase) then
-     call deallocate(vfrac)
-  end if
-
- contains
-    
-  subroutine keps_momentum_source_ele()
-      
-    real, dimension(ele_loc(k, i), ele_ngi(k, i), x%dim) :: dshape_k
-    real, dimension(ele_loc(density, i), ele_ngi(density, i), x%dim) :: dshape_density
-    real, dimension(ele_loc(vfrac, i), ele_ngi(vfrac, i), x%dim) :: dshape_vfrac
-    real, dimension(ele_ngi(k, i)) :: detwei
-    integer, dimension(ele_loc(k, i)) :: nodes
-    real, dimension(ele_loc(k, i), ele_loc(k, i)) :: invmass
-    type(element_type), pointer :: shape_k, shape_density, shape_vfrac
-    real, dimension(x%dim, ele_loc(k, i)) :: rhs_addto
-    real, dimension(x%dim, ele_ngi(k, i)) :: grad_k
-    real, dimension(x%dim, ele_ngi(density, i)) :: grad_density
-    real, dimension(x%dim, ele_ngi(density, i)) :: grad_vfrac
-
-    shape_k => ele_shape(k, i)
-    nodes = ele_nodes(source, i)
-
-    call transform_to_physical( x, i, shape_k, dshape=dshape_k, detwei=detwei )
-
-    if(.not.(density%mesh == k%mesh)) then
-       shape_density => ele_shape(density, i)
-       call transform_to_physical( x, i, shape_density, dshape=dshape_density ) 
-    else
-       dshape_density = dshape_k
-    end if
-    
-    if(multiphase) then
-      if(.not.(vfrac%mesh == k%mesh)) then
-         shape_vfrac => ele_shape(vfrac, i)
-         call transform_to_physical( x, i, shape_vfrac, dshape=dshape_vfrac ) 
-      else
-         dshape_vfrac = dshape_k
-      end if
-    end if
-     
-    grad_k = ele_grad_at_quad(k, i, dshape_k)
-    grad_density = ele_grad_at_quad(density, i, dshape_density)
-    if(multiphase) then
-       grad_vfrac = ele_grad_at_quad(vfrac, i, dshape_vfrac)
-    end if
-    ! IMPORTANT: This gets added to the VelocitySource term. In Momentum_CG/DG.F90
-    ! the VelocitySource gets multiplied by the Density field, so we have
-    ! divided through by Density here in order to cancel this out
-    ! and get the desired result.
-    if(multiphase) then
-      rhs_addto = shape_vector_rhs(shape_k, -(2./3.)*grad_k, detwei*ele_val_at_quad(vfrac,i)) + &
-                  shape_vector_rhs(shape_k, -(2./3.)*grad_density, detwei*ele_val_at_quad(vfrac,i)* &
-                  ele_val_at_quad(k,i)/ele_val_at_quad(density,i)) + &
-                  shape_vector_rhs(shape_k, -(2./3.)*grad_vfrac, detwei*ele_val_at_quad(k,i)) 
-    else
-      rhs_addto = shape_vector_rhs(shape_k, -(2./3.)*grad_k, detwei) + &
-                  shape_vector_rhs(shape_k, -(2./3.)*grad_density, detwei*ele_val_at_quad(k,i)/ele_val_at_quad(density,i))
-    end if
-      
-    ! In the DG case we apply the inverse mass locally.
-    if(continuity(k)<0) then
-       invmass = inverse(shape_shape(shape_k, shape_k, detwei))
-       rhs_addto = matmul(rhs_addto, invmass)
-       call addto(source, nodes, rhs_addto)  
-    else
-       call addto(rhs, nodes, rhs_addto) 
-    end if
-
-  end subroutine keps_momentum_source_ele
-
-end subroutine keps_momentum_source
 
 !--------------------------------------------------------------------------------!
 ! This gets and applies locally defined boundary conditions (wall functions)     !

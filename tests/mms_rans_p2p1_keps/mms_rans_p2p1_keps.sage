@@ -14,15 +14,15 @@ def function(phi_0, phi_x, phi_y, phi_xy,
 u = function(3.0, 1.0, 0.6, 0.0, 
              0.0, 1.0, 1.0, 0.0, 1.0, 0.0,
              1.0, 1.0, 1.0)
-p = function(-1.0, 1.0, 1.0, 1.0,
-             1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
-             1.0, 1.0, 1.0)
 rho = function(5.2, -1.8, -1.3, 3.7, 
                1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
                1.7, 2.1, 1.3)
 ke = function(0.9, 0.9, 0.6, 0.4, 
              0.0, 1.0, 1.0, 0.0, 0.0, 1.0,
              0.6, 0.7, 0.8)
+p = function(-1.0, 1.0, 1.0, 1.0,
+             1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
+             1.0, 1.0, 1.0) - 2./3. * ke
 eps = function(8.2, -3.8, 4.3, 1.7, 
              1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
              0.7, 0.8, 0.6)
@@ -70,8 +70,8 @@ print 'def v(X):'
 print '    return', str(v).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''  
 print 'def p(X):'
-print '    return', str(p).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
-print ''  
+print '    return', str(p + 2./3. * ke).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
+print ''    
 print 'def rho(X):'
 print '    return', str(rho).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''  
