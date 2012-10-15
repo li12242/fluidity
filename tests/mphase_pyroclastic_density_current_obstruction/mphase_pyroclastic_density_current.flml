@@ -474,6 +474,7 @@
         <mesh name="InternalEnergyMesh"/>
         <equation name="InternalEnergy">
           <density name="Density"/>
+          <include_pressure_term/>
         </equation>
         <spatial_discretisation>
           <continuous_galerkin>
@@ -534,7 +535,7 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="CompressibleContinuity" rank="0">
+    <scalar_field name="CompressibleContinuityResidual" rank="0">
       <diagnostic>
         <mesh name="PressureMesh"/>
         <algorithm name="Internal" material_phase_support="multiple"/>
