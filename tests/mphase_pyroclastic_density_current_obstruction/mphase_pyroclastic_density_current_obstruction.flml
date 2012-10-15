@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">mphase_pyroclastic_density_current</string_value>
+    <string_value lines="1">mphase_pyroclastic_density_current_obstruction</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">multiphase</string_value>
@@ -11,7 +11,7 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="mphase_pyroclastic_density_current">
+      <from_file file_name="mphase_pyroclastic_density_current_obstruction">
         <format name="triangle"/>
         <stat>
           <include_in_stat/>
