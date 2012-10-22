@@ -1,7 +1,6 @@
 `preprocess:
 	@echo **********Creating 2D mesh
-	gmsh -2 -o mphase_plinian_eruption_neri.msh src/mphase_plinian_eruption_neri.geo
-	../../bin/gmsh2triangle --2d mphase_plinian_eruption_neri.msh
+	../../bin/gmsh2triangle --2d src/mphase_plinian_eruption_neri.msh
 	../../bin/fldecomp -n 2 mphase_plinian_eruption_neri
 
 run:
