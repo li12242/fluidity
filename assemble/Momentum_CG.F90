@@ -139,6 +139,7 @@
     
     ! LES coefficients and options
     real :: smagorinsky_coefficient
+    character(len=OPTION_PATH_LEN) :: length_scale_type
     logical :: have_lilly, have_eddy_visc, backscatter
     logical :: have_strain, have_filtered_strain, have_filter_width
 
@@ -386,6 +387,8 @@
          if (les_second_order) then
             call get_option(trim(les_option_path)//"/second_order/smagorinsky_coefficient", &
                  smagorinsky_coefficient)
+               
+            call get_option(trim(les_option_path)//"/second_order/length_scale_type", length_scale_type)
 
             have_eddy_visc = have_option(trim(les_option_path)//"/second_order/tensor_field::EddyViscosity")
             if(have_eddy_visc) then
@@ -1368,8 +1371,7 @@
       ! Viscous terms
       if(have_viscosity .or. have_les) then
         call add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
-           tnu, leonard, alpha, &
-           du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
+           tnu, leonard, alpha, du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, density, nvfrac)
       end if
       
       ! Get only the viscous terms
@@ -1993,7 +1995,7 @@
       
     subroutine add_viscosity_element_cg(state, ele, test_function, u, oldu_val, nu, x, viscosity, grad_u, &
         tnu, leonard, alpha, &
-         du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, nvfrac)
+         du_t, detwei, big_m_tensor_addto, rhs_addto, temperature, density, nvfrac)
       type(state_type), intent(inout) :: state
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
@@ -2018,7 +2020,8 @@
 
       ! Temperature dependent viscosity:
       type(scalar_field), intent(in) :: temperature
-    
+      ! Density field
+      type(scalar_field), intent(in) :: density
       ! Non-linear PhaseVolumeFraction
       type(scalar_field), intent(in) :: nvfrac
 
@@ -2027,7 +2030,8 @@
       real, dimension(u%dim, u%dim, ele_ngi(u, ele))                                 :: viscosity_gi
       real, dimension(u%dim, u%dim, ele_loc(u, ele), ele_loc(u, ele))                :: viscosity_mat
       real, dimension(x%dim, x%dim, ele_ngi(u, ele))                                 :: les_tensor_gi
-      real, dimension(ele_ngi(u, ele))                                               :: les_coef_gi, wale_coef_gi
+      real, dimension(ele_ngi(u, ele))                                               :: les_scalar_gi
+      real, dimension(ele_ngi(u, ele))                                               :: les_coef_gi, wale_coef_gi, density_gi
       real, dimension(x%dim, ele_loc(u,ele), ele_loc(u,ele))                         :: div_les_viscosity
       real, dimension(x%dim, x%dim, ele_loc(u,ele))                                  :: grad_u_nodes
       real, dimension(ele_loc(u, ele), ele_ngi(u, ele), u%dim), intent(in)           :: du_t
@@ -2059,6 +2063,8 @@
       ! add in LES viscosity
       if (have_les) then
          nu_ele = ele_val(nu, ele)
+         les_tensor_gi = 0.0
+         les_scalar_gi = 0.0
 
          ! WALE model
          if (wale) then
@@ -2071,13 +2077,27 @@
                     max(les_coef_gi(gi)**5 + wale_coef_gi(gi)**2.5, 1.e-10)
             end do
          ! 2nd order Smagorinsky model
-         else if(les_second_order) then
-            les_tensor_gi=length_scale_tensor(du_t, ele_shape(u, ele))
-            les_coef_gi=les_viscosity_strength(du_t, nu_ele)
-            do gi=1, size(les_coef_gi)
-               les_tensor_gi(:,:,gi)=4.*les_coef_gi(gi)*les_tensor_gi(:,:,gi)* &
-                    smagorinsky_coefficient**2
-            end do
+         else if(les_second_order) then           
+            les_coef_gi = les_viscosity_strength(du_t, nu_ele)
+            density_gi = ele_val_at_quad(density, ele)
+            
+            select case(length_scale_type)
+               case("scalar")
+                  les_scalar_gi = length_scale_scalar(x, ele)
+                  do gi = 1, size(les_coef_gi)
+                     les_tensor_gi(:,:,gi) = 2.*les_scalar_gi(gi)*&
+                        density_gi(gi)*les_coef_gi(gi)*(smagorinsky_coefficient**2)
+                  end do
+               case("tensor")
+                  les_tensor_gi = length_scale_tensor(du_t, ele_shape(u, ele))
+                  do gi = 1, size(les_coef_gi)
+                     les_tensor_gi(:,:,gi) = 4.*les_tensor_gi(:,:,gi)*&
+                        density_gi(gi)*les_coef_gi(gi)*(smagorinsky_coefficient**2)
+                  end do
+               case default
+                  FLExit("Unknown length scale type")
+            end select
+            
             ! Eddy viscosity tensor field. Calling this subroutine works because
             ! you can't have 2 different types of LES model for the same material phase.
             if(have_eddy_visc) then
@@ -2111,7 +2131,7 @@
             ! Filter width G1 associated with mesh size (units length^2)
             mesh_size_gi = length_scale_tensor(du_t, ele_shape(u, ele))
             ! Leonard tensor L at gi
-            leonard_gi =ele_val_at_quad(leonard, ele)
+            leonard_gi = ele_val_at_quad(leonard, ele)
 
             do gi=1, ele_ngi(nu, ele)
               ! Get strain modulus |S1| for unfiltered velocity (ngi)
@@ -2179,7 +2199,9 @@
          else
             FLAbort("Unknown LES model")
          end if
+         
          viscosity_gi=viscosity_gi+les_tensor_gi
+         
       end if
       ! element viscosity matrix - tensor form
       !  /
