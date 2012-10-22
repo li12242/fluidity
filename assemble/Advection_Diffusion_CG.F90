@@ -119,7 +119,7 @@ module advection_diffusion_cg
   ! Include porosity?
   logical :: include_porosity
   ! Include the extra internal energy equation terms? (for InternalEnergy equation_type only)
-  logical :: include_heat_flux = .false., include_pressure_term = .false.
+  logical :: include_pressure_term = .false.
   ! Is this material_phase compressible?
   logical :: compressible = .false.
   ! Are we running a multiphase flow simulation?
@@ -547,15 +547,6 @@ contains
          pressure => dummydensity
       end if
 
-      
-      if(have_option(trim(t%option_path)//'/prognostic/equation[0]/include_heat_flux_term')) then
-         include_heat_flux = .true.
-         call get_option(trim(t%option_path)//'/prognostic/equation[0]/include_heat_flux_term/effective_conductivity', k)
-         call get_option(trim(t%option_path)//'/prognostic/equation[0]/include_heat_flux_term/specific_heat', C_v)
-      else
-         include_heat_flux = .false.
-      end if
-
     case(FIELD_EQUATION_KEPSILON)
       ewrite(2,*) "Solving k-epsilon equation"
       if(move_mesh) then
@@ -884,7 +875,7 @@ contains
     if(have_absorption) call add_absorption_element_cg(ele, test_function, t, absorption, detwei, matrix_addto, rhs_addto)
     
     ! Diffusivity
-    if(have_diffusivity) call add_diffusivity_element_cg(ele, t, diffusivity, dt_t, detwei, matrix_addto, rhs_addto)
+    if(have_diffusivity) call add_diffusivity_element_cg(ele, t, diffusivity, dt_t, nvfrac, detwei, matrix_addto, rhs_addto)
     
     ! Source
     if(have_source .and. (.not. add_src_directly_to_rhs)) then 
@@ -896,12 +887,7 @@ contains
        call add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, nvfrac, du_t, detwei, rhs_addto)
     end if
                                                                                   
-    ! Heat flux
-    if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. include_heat_flux) then
-       call add_heat_flux_element_cg(ele, test_function, t, du_t, nvfrac, k, C_v, detwei, matrix_addto, rhs_addto)
-    end if
-                                                                                  
-    
+
     ! Step 4: Insertion
             
     element_nodes => ele_nodes(t, ele)
@@ -1229,9 +1215,9 @@ contains
     
   end subroutine add_absorption_element_cg
   
-  subroutine add_diffusivity_element_cg(ele, t, diffusivity, dt_t, detwei, matrix_addto, rhs_addto)
+  subroutine add_diffusivity_element_cg(ele, t, diffusivity, dt_t, nvfrac, detwei, matrix_addto, rhs_addto)
     integer, intent(in) :: ele
-    type(scalar_field), intent(in) :: t
+    type(scalar_field), intent(in) :: t, nvfrac
     type(tensor_field), intent(in) :: diffusivity
     real, dimension(ele_loc(t, ele), ele_ngi(t, ele), mesh_dim(t)), intent(in) :: dt_t
     real, dimension(ele_ngi(t, ele)), intent(in) :: detwei
@@ -1244,9 +1230,22 @@ contains
     assert(have_diffusivity)
     
     diffusivity_gi = ele_val_at_quad(diffusivity, ele)
+
     if(isotropic_diffusivity) then
-      assert(size(diffusivity_gi, 1) > 0)
-      diffusivity_mat = dshape_dot_dshape(dt_t, dt_t, detwei * diffusivity_gi(1, 1, :))
+      assert(size(diffusivity_gi, 1) > 0)    
+          
+      if(multiphase .and. equation_type==FIELD_EQUATION_INTERNALENERGY) then
+         ! This allows us to use the Diffusivity term as the heat flux term
+         ! in the multiphase InternalEnergy equation: div( (k/Cv) * vfrac * grad(ie) ).
+         ! The user needs to input k/Cv for the prescribed diffusivity,
+         ! where k is the effective conductivity and Cv is the specific heat
+         ! at constant volume. We've assumed this will always be isotropic here.
+         ! The division by Cv is needed because the heat flux
+         ! is defined in terms of temperature T = ie/Cv.
+         diffusivity_mat = dshape_dot_dshape(dt_t, dt_t, detwei * diffusivity_gi(1, 1, :) * ele_val_at_quad(nvfrac, ele))
+      else
+         diffusivity_mat = dshape_dot_dshape(dt_t, dt_t, detwei * diffusivity_gi(1, 1, :))
+      end if
     else
       diffusivity_mat = dshape_tensor_dshape(dt_t, diffusivity_gi, dt_t, detwei)
     end if

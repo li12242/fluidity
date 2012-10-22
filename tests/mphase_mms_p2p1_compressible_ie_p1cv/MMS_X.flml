@@ -475,6 +475,18 @@
             </python>
           </type>
         </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.001</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <scalar_field name="Source" rank="0">
           <prescribed>
             <value name="WholeMesh">
@@ -808,7 +820,7 @@
       <fluids>
         <linear>
           <reference_density>
-            <real_value rank="0">2.0</real_value>
+            <real_value rank="0">3.0</real_value>
           </reference_density>
         </linear>
       </fluids>
@@ -1042,6 +1054,18 @@
             </python>
           </type>
         </boundary_conditions>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.001</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <scalar_field name="Source" rank="0">
           <prescribed>
             <value name="WholeMesh">
@@ -1210,9 +1234,4 @@
       </specific_heat>
     </multiphase_properties>
   </material_phase>
-  <multiphase_interaction>
-    <heat_transfer>
-      <heat_transfer_coefficient name="gunn"/>
-    </heat_transfer>
-  </multiphase_interaction>
 </fluidity_options>
