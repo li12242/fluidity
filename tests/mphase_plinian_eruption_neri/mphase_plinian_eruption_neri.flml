@@ -147,9 +147,7 @@
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
-          <continuous_galerkin>
-            <remove_stabilisation_term/>
-          </continuous_galerkin>
+          <continuous_galerkin/>
         </spatial_discretisation>
         <scheme>
           <poisson_pressure_solution>
@@ -241,24 +239,38 @@
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
-              <no_stabilisation/>
+              <streamline_upwind_petrov_galerkin>
+                <nu_bar_optimal/>
+                <nu_scale name="1_over_sqrt_15">
+                  <real_value shape="1" rank="0">0.25819889</real_value>
+                </nu_scale>
+              </streamline_upwind_petrov_galerkin>
             </stabilisation>
             <mass_terms>
               <lump_mass_matrix>
                 <use_submesh/>
               </lump_mass_matrix>
             </mass_terms>
-            <advection_terms>
-              <integrate_advection_by_parts/>
-            </advection_terms>
+            <advection_terms/>
             <stress_terms>
-              <tensor_form/>
+              <stress_form/>
             </stress_terms>
             <les_model>
               <second_order>
                 <smagorinsky_coefficient>
                   <real_value rank="0">0.1</real_value>
                 </smagorinsky_coefficient>
+                <length_scale_type>scalar</length_scale_type>
+                <tensor_field name="EddyViscosity" rank="2">
+                  <diagnostic>
+                    <algorithm name="Internal" material_phase_support="multiple"/>
+                    <mesh name="VelocityMesh"/>
+                    <output/>
+                    <stat>
+                      <include_in_stat/>
+                    </stat>
+                  </diagnostic>
+                </tensor_field>
               </second_order>
             </les_model>
           </continuous_galerkin>
@@ -364,6 +376,11 @@
           </surface_ids>
           <type name="dirichlet">
             <align_bc_with_cartesian>
+              <x_component>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
+              </x_component>
               <y_component>
                 <constant>
                   <real_value rank="0">141.0</real_value>
@@ -375,11 +392,11 @@
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
-              <isotropic>
+              <anisotropic_asymmetric>
                 <constant>
-                  <real_value rank="0">1.85e-5</real_value>
+                  <real_value symmetric="false" dim2="dim" shape="2 2" dim1="dim" rank="2">1.85e-5 1.85e-5 1.85e-5 1.85e-5</real_value>
                 </constant>
-              </isotropic>
+              </anisotropic_asymmetric>
             </value>
             <output/>
           </prescribed>
@@ -434,7 +451,11 @@
         </equation>
         <spatial_discretisation>
           <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
+            <face_value name="FiniteElement">
+              <limit_face_value>
+                <limiter name="Sweby"/>
+              </limit_face_value>
+            </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
@@ -469,6 +490,18 @@
             <real_value rank="0">373990</real_value>
           </constant>
         </initial_condition>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.000398406374502</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <output/>
         <stat/>
         <convergence>
@@ -696,6 +729,11 @@
           <type name="dirichlet">
             <apply_weakly/>
             <align_bc_with_cartesian>
+              <x_component>
+                <constant>
+                  <real_value rank="0">0.0</real_value>
+                </constant>
+              </x_component>
               <y_component>
                 <constant>
                   <real_value rank="0">141.0</real_value>
@@ -704,6 +742,18 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
+        <tensor_field name="Viscosity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.5</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <output/>
         <stat>
           <include_in_stat/>
@@ -856,7 +906,11 @@
         </equation>
         <spatial_discretisation>
           <control_volumes>
-            <face_value name="FirstOrderUpwind"/>
+            <face_value name="FiniteElement">
+              <limit_face_value>
+                <limiter name="Sweby"/>
+              </limit_face_value>
+            </face_value>
             <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
@@ -891,6 +945,18 @@
             <real_value rank="0">373990</real_value>
           </constant>
         </initial_condition>
+        <tensor_field name="Diffusivity" rank="2">
+          <prescribed>
+            <value name="WholeMesh">
+              <isotropic>
+                <constant>
+                  <real_value rank="0">0.000398406374502</real_value>
+                </constant>
+              </isotropic>
+            </value>
+            <output/>
+          </prescribed>
+        </tensor_field>
         <output/>
         <stat/>
         <convergence>
