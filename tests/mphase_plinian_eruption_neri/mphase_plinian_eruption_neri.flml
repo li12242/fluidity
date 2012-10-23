@@ -147,7 +147,9 @@
       <prognostic>
         <mesh name="PressureMesh"/>
         <spatial_discretisation>
-          <continuous_galerkin/>
+          <continuous_galerkin>
+            <remove_stabilisation_term/>
+          </continuous_galerkin>
         </spatial_discretisation>
         <scheme>
           <poisson_pressure_solution>
@@ -239,12 +241,12 @@
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
-              <streamline_upwind_petrov_galerkin>
+              <streamline_upwind>
                 <nu_bar_optimal/>
-                <nu_scale name="1_over_sqrt_15">
-                  <real_value shape="1" rank="0">0.25819889</real_value>
+                <nu_scale name="0.5">
+                  <real_value shape="1" rank="0">0.5</real_value>
                 </nu_scale>
-              </streamline_upwind_petrov_galerkin>
+              </streamline_upwind>
             </stabilisation>
             <mass_terms>
               <lump_mass_matrix>
@@ -261,16 +263,6 @@
                   <real_value rank="0">0.1</real_value>
                 </smagorinsky_coefficient>
                 <length_scale_type>scalar</length_scale_type>
-                <tensor_field name="EddyViscosity" rank="2">
-                  <diagnostic>
-                    <algorithm name="Internal" material_phase_support="multiple"/>
-                    <mesh name="VelocityMesh"/>
-                    <output/>
-                    <stat>
-                      <include_in_stat/>
-                    </stat>
-                  </diagnostic>
-                </tensor_field>
               </second_order>
             </les_model>
           </continuous_galerkin>
@@ -608,7 +600,12 @@
         <spatial_discretisation>
           <continuous_galerkin>
             <stabilisation>
-              <no_stabilisation/>
+              <streamline_upwind>
+                <nu_bar_optimal/>
+                <nu_scale name="0.5">
+                  <real_value shape="1" rank="0">0.5</real_value>
+                </nu_scale>
+              </streamline_upwind>
             </stabilisation>
             <mass_terms>
               <lump_mass_matrix>
@@ -1000,7 +997,7 @@
   <mesh_adaptivity>
     <hr_adaptivity>
       <period_in_timesteps>
-        <integer_value rank="0">20</integer_value>
+        <integer_value rank="0">25</integer_value>
       </period_in_timesteps>
       <adaptive_timestep_at_adapt/>
       <maximum_number_of_nodes>
