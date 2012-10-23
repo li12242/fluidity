@@ -88,7 +88,7 @@
       <real_value rank="0">240.0</real_value>
     </finish_time>
     <nonlinear_iterations>
-      <integer_value rank="0">2</integer_value>
+      <integer_value rank="0">4</integer_value>
       <tolerance>
         <real_value rank="0">1.0e-9</real_value>
         <infinity_norm/>
@@ -105,7 +105,7 @@
         <real_value rank="0">0.001</real_value>
       </minimum_timestep>
       <increase_tolerance>
-        <real_value rank="0">5.0</real_value>
+        <real_value rank="0">2.0</real_value>
       </increase_tolerance>
     </adaptive_timestep>
   </timestepping>
@@ -197,7 +197,7 @@
             <face_value name="FirstOrderUpwind"/>
           </control_volumes>
           <conservative_advection>
-            <real_value rank="0">0.0</real_value>
+            <real_value rank="0">1.0</real_value>
           </conservative_advection>
         </spatial_discretisation>
         <temporal_discretisation>
@@ -1022,6 +1022,9 @@
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
+      <aspect_ratio_bound>
+        <real_value rank="0">3</real_value>
+      </aspect_ratio_bound>
       <adapt_at_first_timestep>
         <number_of_adapts>
           <integer_value rank="0">4</integer_value>
