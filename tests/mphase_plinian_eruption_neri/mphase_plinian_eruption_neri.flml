@@ -88,7 +88,7 @@
       <real_value rank="0">240.0</real_value>
     </finish_time>
     <nonlinear_iterations>
-      <integer_value rank="0">4</integer_value>
+      <integer_value rank="0">2</integer_value>
       <tolerance>
         <real_value rank="0">1.0e-9</real_value>
         <infinity_norm/>
@@ -105,7 +105,7 @@
         <real_value rank="0">0.001</real_value>
       </minimum_timestep>
       <increase_tolerance>
-        <real_value rank="0">2.0</real_value>
+        <real_value rank="0">5.0</real_value>
       </increase_tolerance>
     </adaptive_timestep>
   </timestepping>
@@ -996,9 +996,9 @@
   </material_phase>
   <mesh_adaptivity>
     <hr_adaptivity>
-      <period_in_timesteps>
-        <integer_value rank="0">25</integer_value>
-      </period_in_timesteps>
+      <period>
+        <real_value rank="0">0.15</real_value>
+      </period>
       <adaptive_timestep_at_adapt/>
       <maximum_number_of_nodes>
         <integer_value rank="0">100000</integer_value>
@@ -1022,9 +1022,6 @@
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
-      <aspect_ratio_bound>
-        <real_value rank="0">3</real_value>
-      </aspect_ratio_bound>
       <adapt_at_first_timestep>
         <number_of_adapts>
           <integer_value rank="0">4</integer_value>
