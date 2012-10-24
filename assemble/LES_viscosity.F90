@@ -36,16 +36,19 @@ module les_viscosity_module
   use smoothing_module
   use vector_tools
   use fetools
+  use state_fields_module
+  use solvers
   implicit none
 
   private
 
   public les_viscosity_strength, wale_viscosity_strength
-  public les_init_diagnostic_tensor_fields, les_set_diagnostic_tensor_fields, leonard_tensor, les_strain_rate
+  public les_init_diagnostic_fields, les_assemble_diagnostic_fields, les_solve_diagnostic_fields, &
+         leonard_tensor, les_strain_rate
 
 contains
 
-  subroutine les_init_diagnostic_tensor_fields(state, have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
+  subroutine les_init_diagnostic_fields(state, have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
 
     type(state_type), intent(inout) :: state
     type(tensor_field), pointer     :: tensorfield
@@ -73,9 +76,9 @@ contains
       call zero(tensorfield)
     end if
 
-  end subroutine les_init_diagnostic_tensor_fields
+  end subroutine les_init_diagnostic_fields
 
-  subroutine les_set_diagnostic_tensor_fields(state, nu, ele, detwei, &
+  subroutine les_assemble_diagnostic_fields(state, nu, ele, detwei, &
                  mesh_size_gi, strain_gi, t_strain_gi, les_tensor_gi, &
                  have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
 
@@ -117,8 +120,87 @@ contains
       call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
     end if
 
-  end subroutine les_set_diagnostic_tensor_fields
+  end subroutine les_assemble_diagnostic_fields
 
+  subroutine les_solve_diagnostic_fields(state, have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
+
+    type(state_type), intent(inout) :: state
+    logical, intent(in) :: have_eddy_visc, have_strain, have_filtered_strain, have_filter_width
+    
+    type(vector_field), pointer :: u
+    type(csr_matrix), pointer :: mass_matrix
+    type(scalar_field), pointer :: lumped_mass
+    type(scalar_field) :: inv_lumped_mass
+    type(tensor_field), pointer :: tensorfield
+    logical :: lump_mass = .false.
+    
+    u => extract_vector_field(state, "Velocity")
+    lump_mass = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
+          &"/continuous_galerkin/mass_terms/lump_mass_matrix") .and. .not.have_option(trim(u%option_path)//&
+          &"/prognostic/spatial_discretisation"//"/continuous_galerkin/mass_terms/lump_mass_matrix/use_submesh")
+    
+    ! Eddy viscosity field m_ij
+    if(have_eddy_visc) then
+      tensorfield => extract_tensor_field(state, "EddyViscosity")
+      if(lump_mass) then
+        lumped_mass => get_lumped_mass(state, tensorfield%mesh)
+        call allocate(inv_lumped_mass, tensorfield%mesh)
+        call invert(lumped_mass, inv_lumped_mass)
+        call scale(tensorfield, inv_lumped_mass)
+        call deallocate(inv_lumped_mass)
+      else
+        mass_matrix => get_mass_matrix(state, tensorfield%mesh)
+        call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
+      end if
+    end if
+
+    ! Strain rate field S1
+    if(have_strain) then
+      tensorfield => extract_tensor_field(state, "StrainRate")
+      if(lump_mass) then
+        lumped_mass => get_lumped_mass(state, tensorfield%mesh)
+        call allocate(inv_lumped_mass, tensorfield%mesh)
+        call invert(lumped_mass, inv_lumped_mass)
+        call scale(tensorfield, inv_lumped_mass)
+        call deallocate(inv_lumped_mass)
+      else
+        mass_matrix => get_mass_matrix(state, tensorfield%mesh)
+        call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
+      end if
+    end if
+
+    ! Filtered strain rate field S2
+    if(have_filtered_strain) then
+      tensorfield => extract_tensor_field(state, "FilteredStrainRate")
+      if(lump_mass) then
+        lumped_mass => get_lumped_mass(state, tensorfield%mesh)
+        call allocate(inv_lumped_mass, tensorfield%mesh)
+        call invert(lumped_mass, inv_lumped_mass)
+        call scale(tensorfield, inv_lumped_mass)
+        call deallocate(inv_lumped_mass)
+      else
+        mass_matrix => get_mass_matrix(state, tensorfield%mesh)
+        call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
+      end if
+    end if
+
+    ! Filter width
+    if(have_filter_width) then
+      tensorfield => extract_tensor_field(state, "FilterWidth")
+      if(lump_mass) then
+        lumped_mass => get_lumped_mass(state, tensorfield%mesh)
+        call allocate(inv_lumped_mass, tensorfield%mesh)
+        call invert(lumped_mass, inv_lumped_mass)
+        call scale(tensorfield, inv_lumped_mass)
+        call deallocate(inv_lumped_mass)
+      else
+        mass_matrix => get_mass_matrix(state, tensorfield%mesh)
+        call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
+      end if
+    end if
+    
+  end subroutine les_solve_diagnostic_fields
+  
   subroutine leonard_tensor(nu, positions, tnu, leonard, alpha, path)
 
     ! Unfiltered velocity
