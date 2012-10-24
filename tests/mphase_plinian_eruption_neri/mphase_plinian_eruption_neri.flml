@@ -263,6 +263,16 @@
                   <real_value rank="0">0.1</real_value>
                 </smagorinsky_coefficient>
                 <length_scale_type>scalar</length_scale_type>
+                <tensor_field name="EddyViscosity" rank="2">
+                  <diagnostic>
+                    <algorithm name="Internal" material_phase_support="multiple"/>
+                    <mesh name="VelocityMesh"/>
+                    <output/>
+                    <stat>
+                      <include_in_stat/>
+                    </stat>
+                  </diagnostic>
+                </tensor_field>
               </second_order>
             </les_model>
           </continuous_galerkin>
@@ -971,6 +981,31 @@
     <scalar_field name="CFLNumber" rank="0">
       <diagnostic>
         <algorithm name="Internal" material_phase_support="multiple"/>
+        <mesh name="VelocityMesh"/>
+        <output/>
+        <stat/>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </scalar_field>
+    <scalar_field name="ParticleReynoldsNumber" rank="0">
+      <diagnostic>
+        <algorithm name="particle_reynolds_number" material_phase_support="multiple">
+          <depends>
+            <string_value lines="1">Air::Density,Air::Velocity,Air::PhaseVolumeFraction,Tephra::Velocity</string_value>
+          </depends>
+          <particle_diameter>
+            <real_value rank="0">32e-6</real_value>
+          </particle_diameter>
+          <continuous_phase_name>Air</continuous_phase_name>
+        </algorithm>
         <mesh name="VelocityMesh"/>
         <output/>
         <stat/>
