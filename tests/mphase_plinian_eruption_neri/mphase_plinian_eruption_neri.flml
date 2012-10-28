@@ -73,6 +73,12 @@
       </constant>
     </dump_period>
     <output_mesh name="VelocityMesh"/>
+    <checkpointing>
+      <checkpoint_period_in_dumps>
+        <integer_value rank="0">50</integer_value>
+      </checkpoint_period_in_dumps>
+      <checkpoint_at_end/>
+    </checkpointing>
     <stat>
       <output_at_start/>
     </stat>
@@ -85,8 +91,11 @@
       <real_value rank="0">0.001</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">240.0</real_value>
+      <real_value rank="0">500.0</real_value>
     </finish_time>
+    <wall_time_limit>
+      <real_value rank="0">255600</real_value>
+    </wall_time_limit>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
       <tolerance>
@@ -216,7 +225,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.3</real_value>
+              <real_value rank="0">0.316535831856</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -263,16 +272,6 @@
                   <real_value rank="0">0.1</real_value>
                 </smagorinsky_coefficient>
                 <length_scale_type>scalar</length_scale_type>
-                <tensor_field name="EddyViscosity" rank="2">
-                  <diagnostic>
-                    <algorithm name="Internal" material_phase_support="multiple"/>
-                    <mesh name="VelocityMesh"/>
-                    <output/>
-                    <stat>
-                      <include_in_stat/>
-                    </stat>
-                  </diagnostic>
-                </tensor_field>
               </second_order>
             </les_model>
           </continuous_galerkin>
@@ -489,7 +488,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">373990</real_value>
+            <real_value rank="0">203252</real_value>
           </constant>
         </initial_condition>
         <tensor_field name="Diffusivity" rank="2">
@@ -497,7 +496,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">0.000398406374502</real_value>
+                  <real_value rank="0">3.62116991643e-05</real_value>
                 </constant>
               </isotropic>
             </value>
@@ -566,10 +565,10 @@
     </scalar_field>
     <multiphase_properties>
       <effective_conductivity>
-        <real_value rank="0">0.5</real_value>
+        <real_value rank="0">0.026</real_value>
       </effective_conductivity>
       <specific_heat>
-        <real_value rank="0">1255</real_value>
+        <real_value rank="0">718</real_value>
       </specific_heat>
     </multiphase_properties>
   </material_phase>
@@ -949,7 +948,8 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value rank="0">373990</real_value>
+            <real_value rank="0">1380500</real_value>
+            <comment>2.2 W m/K divided by 1255 J/kg/K</comment>
           </constant>
         </initial_condition>
         <tensor_field name="Diffusivity" rank="2">
@@ -957,7 +957,7 @@
             <value name="WholeMesh">
               <isotropic>
                 <constant>
-                  <real_value rank="0">0.000398406374502</real_value>
+                  <real_value rank="0">0.00175298804781</real_value>
                 </constant>
               </isotropic>
             </value>
