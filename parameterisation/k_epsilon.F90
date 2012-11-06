@@ -258,6 +258,8 @@ subroutine keps_calculate_rhs(state)
   
   if(have_buoyancy_turbulence) then
      buoyancy_density => extract_scalar_field(state, 'VelocityBuoyancyDensity')
+  else
+     buoyancy_density => dummydensity
   end if
 
   ! PhaseVolumeFraction for multiphase flow simulations
