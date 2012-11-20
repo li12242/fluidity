@@ -184,6 +184,16 @@
             <monitors/>
           </diagnostics>
         </solver>
+        <boundary_conditions name="Top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">333</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">55000</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -272,6 +282,16 @@
                   <real_value rank="0">0.1</real_value>
                 </smagorinsky_coefficient>
                 <length_scale_type>scalar</length_scale_type>
+                <tensor_field name="EddyViscosity" rank="2">
+                  <diagnostic>
+                    <algorithm name="Internal" material_phase_support="multiple"/>
+                    <mesh name="VelocityMesh"/>
+                    <output/>
+                    <stat>
+                      <include_in_stat/>
+                    </stat>
+                  </diagnostic>
+                </tensor_field>
               </second_order>
             </les_model>
           </continuous_galerkin>
@@ -491,6 +511,16 @@
             <real_value rank="0">203252</real_value>
           </constant>
         </initial_condition>
+        <boundary_conditions name="Top">
+          <surface_ids>
+            <integer_value shape="1" rank="1">333</integer_value>
+          </surface_ids>
+          <type name="dirichlet">
+            <constant>
+              <real_value rank="0">196428.571429</real_value>
+            </constant>
+          </type>
+        </boundary_conditions>
         <tensor_field name="Diffusivity" rank="2">
           <prescribed>
             <value name="WholeMesh">
