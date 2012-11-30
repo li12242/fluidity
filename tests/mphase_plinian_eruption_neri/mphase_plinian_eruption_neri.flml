@@ -91,7 +91,7 @@
       <real_value rank="0">0.001</real_value>
     </timestep>
     <finish_time>
-      <real_value rank="0">500.0</real_value>
+      <real_value rank="0">600.0</real_value>
     </finish_time>
     <wall_time_limit>
       <real_value rank="0">255600</real_value>
@@ -111,7 +111,7 @@
         <mesh name="VelocityMesh"/>
       </courant_number>
       <minimum_timestep>
-        <real_value rank="0">0.001</real_value>
+        <real_value rank="0">0.005</real_value>
       </minimum_timestep>
       <increase_tolerance>
         <real_value rank="0">5.0</real_value>
@@ -190,7 +190,9 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">55000</real_value>
+              <real_value rank="0">33446</real_value>
+              <comment>Pressure value at 10 km = 33446 Pa
+Density value at 10 km = 0.3198 kg/m^3</comment>
             </constant>
           </type>
         </boundary_conditions>
@@ -372,7 +374,7 @@
             </align_bc_with_cartesian>
           </type>
         </boundary_conditions>
-        <boundary_conditions name="BottomRest">
+        <boundary_conditions name="Bottom">
           <surface_ids>
             <integer_value shape="1" rank="1">444</integer_value>
           </surface_ids>
@@ -517,7 +519,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">196428.571429</real_value>
+              <real_value rank="0">261460.28768</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -908,7 +910,7 @@
               <prescribed>
                 <value name="WholeMesh">
                   <constant>
-                    <real_value rank="0">0.0014</real_value>
+                    <real_value rank="0">0.01</real_value>
                   </constant>
                 </value>
                 <output/>
@@ -1066,7 +1068,7 @@
       </period>
       <adaptive_timestep_at_adapt/>
       <maximum_number_of_nodes>
-        <integer_value rank="0">100000</integer_value>
+        <integer_value rank="0">200000</integer_value>
       </maximum_number_of_nodes>
       <enable_gradation>
         <gradation_parameter>
@@ -1076,7 +1078,7 @@
       <tensor_field name="MinimumEdgeLengths">
         <anisotropic_symmetric>
           <constant>
-            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">10.0 0.0 0.0 10.0</real_value>
+            <real_value symmetric="true" dim2="dim" shape="2 2" dim1="dim" rank="2">5.0 0.0 0.0 5.0</real_value>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
@@ -1087,11 +1089,6 @@
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
-      <adapt_at_first_timestep>
-        <number_of_adapts>
-          <integer_value rank="0">4</integer_value>
-        </number_of_adapts>
-      </adapt_at_first_timestep>
     </hr_adaptivity>
   </mesh_adaptivity>
   <multiphase_interaction>
