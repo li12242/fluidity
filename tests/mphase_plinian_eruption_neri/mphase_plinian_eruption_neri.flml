@@ -94,7 +94,7 @@
       <real_value rank="0">600.0</real_value>
     </finish_time>
     <wall_time_limit>
-      <real_value rank="0">255600</real_value>
+      <real_value rank="0">532800</real_value>
     </wall_time_limit>
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
@@ -111,10 +111,10 @@
         <mesh name="VelocityMesh"/>
       </courant_number>
       <minimum_timestep>
-        <real_value rank="0">0.005</real_value>
+        <real_value rank="0">0.001</real_value>
       </minimum_timestep>
       <increase_tolerance>
-        <real_value rank="0">5.0</real_value>
+        <real_value rank="0">1.2</real_value>
       </increase_tolerance>
     </adaptive_timestep>
   </timestepping>
@@ -184,18 +184,20 @@
             <monitors/>
           </diagnostics>
         </solver>
-        <boundary_conditions name="Top">
-          <surface_ids>
-            <integer_value shape="1" rank="1">333</integer_value>
-          </surface_ids>
-          <type name="dirichlet">
-            <constant>
-              <real_value rank="0">33446</real_value>
-              <comment>Pressure value at 10 km = 33446 Pa
-Density value at 10 km = 0.3198 kg/m^3</comment>
-            </constant>
-          </type>
-        </boundary_conditions>
+        <initial_condition name="WholeMesh">
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  from math import exp
+  T0 = 288.15 # K
+  L = 0.0065 # K/m
+  M = 0.0289644 # kg/mol
+  R = 8.31447 # J/(mol·K)
+  g = 9.8 # m/s**2
+  h = X[1] # m
+  p = 101325.0*(1.0 - ((L*h)/T0))**((g*M)/(R*L))
+  return p</string_value>
+          </python>
+        </initial_condition>
         <output/>
         <stat/>
         <convergence>
@@ -227,9 +229,22 @@ Density value at 10 km = 0.3198 kg/m^3</comment>
           </theta>
         </temporal_discretisation>
         <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">1.23</real_value>
-          </constant>
+          <python>
+            <string_value lines="20" type="code" language="python">def val(X,t):
+  from math import exp
+  T0 = 288.15 # K
+  L = 0.0065 # K/m
+  M = 0.0289644 # kg/mol
+  R = 8.31447 # J/(mol·K)
+  g = 9.8 # m/s**2
+  h = X[1] # m
+  T = T0 - L*h
+  gamma = 1.4
+  Cv = (6.0 + 0.002*T - 0.3e-6*T**2)*(4.18e3/28.964)/gamma
+  e = T*Cv
+  p = 101325.0*(1.0 - ((L*h)/T0))**((g*M)/(R*L))
+  return p/(0.4*e)</string_value>
+          </python>
         </initial_condition>
         <boundary_conditions name="Vent">
           <surface_ids>
@@ -237,7 +252,7 @@ Density value at 10 km = 0.3198 kg/m^3</comment>
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">0.316535831856</real_value>
+              <real_value rank="0">0.136725075179</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -284,16 +299,6 @@ Density value at 10 km = 0.3198 kg/m^3</comment>
                   <real_value rank="0">0.1</real_value>
                 </smagorinsky_coefficient>
                 <length_scale_type>scalar</length_scale_type>
-                <tensor_field name="EddyViscosity" rank="2">
-                  <diagnostic>
-                    <algorithm name="Internal" material_phase_support="multiple"/>
-                    <mesh name="VelocityMesh"/>
-                    <output/>
-                    <stat>
-                      <include_in_stat/>
-                    </stat>
-                  </diagnostic>
-                </tensor_field>
               </second_order>
             </les_model>
           </continuous_galerkin>
@@ -509,17 +514,25 @@ Density value at 10 km = 0.3198 kg/m^3</comment>
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <constant>
-            <real_value rank="0">203252</real_value>
-          </constant>
+          <python>
+            <string_value type="code" lines="20" language="python">def val(X,t):
+  T0 = 288.15 # K
+  L = 0.0065 # K/m
+  h = X[1] # m
+  T = T0 - L*h
+  gamma = 1.4
+  Cv = (6.0 + 0.002*T - 0.3e-6*T**2)*(4.18e3/28.964)/gamma
+  e = T*Cv
+  return e</string_value>
+          </python>
         </initial_condition>
-        <boundary_conditions name="Top">
+        <boundary_conditions name="Vent">
           <surface_ids>
-            <integer_value shape="1" rank="1">333</integer_value>
+            <integer_value shape="1" rank="1">999</integer_value>
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">261460.28768</real_value>
+              <real_value rank="0">1852714.2857146</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -1063,9 +1076,9 @@ Density value at 10 km = 0.3198 kg/m^3</comment>
   </material_phase>
   <mesh_adaptivity>
     <hr_adaptivity>
-      <period>
-        <real_value rank="0">0.15</real_value>
-      </period>
+      <period_in_timesteps>
+        <integer_value rank="0">15</integer_value>
+      </period_in_timesteps>
       <adaptive_timestep_at_adapt/>
       <maximum_number_of_nodes>
         <integer_value rank="0">200000</integer_value>
@@ -1089,6 +1102,11 @@ Density value at 10 km = 0.3198 kg/m^3</comment>
           </constant>
         </anisotropic_symmetric>
       </tensor_field>
+      <adapt_at_first_timestep>
+        <number_of_adapts>
+          <integer_value rank="0">4</integer_value>
+        </number_of_adapts>
+      </adapt_at_first_timestep>
     </hr_adaptivity>
   </mesh_adaptivity>
   <multiphase_interaction>
