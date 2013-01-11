@@ -450,6 +450,8 @@ contains
           call set(density, reference_density*bulk_sound_speed_squared + atmospheric_pressure)
           call addto(density, pressure_remap)
           call scale(density, drhodp)
+
+          call bound(density, 1.0e-4, huge(0.0)*epsilon(0.0)) 
           
           call deallocate(pressure_remap)
         else
@@ -474,6 +476,7 @@ contains
           
           call allocate(density_remap, drhodp%mesh, "RemappedDensity")
           call remap_field(density_local, density_remap)
+          call bound(density_remap, 1.0e-4, huge(0.0)*epsilon(0.0))
           
           call set(pressure, drhodp)
           call invert(pressure)
