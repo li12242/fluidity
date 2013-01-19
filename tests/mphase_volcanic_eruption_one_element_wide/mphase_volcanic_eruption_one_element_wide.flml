@@ -364,7 +364,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 300.0</real_value>
+            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="LeftSide">
@@ -408,7 +408,7 @@
               </x_component>
               <y_component>
                 <constant>
-                  <real_value rank="0">300.0</real_value>
+                  <real_value rank="0">141.0</real_value>
                 </constant>
               </y_component>
             </align_bc_with_cartesian>
@@ -477,7 +477,7 @@
         <spatial_discretisation>
           <control_volumes>
             <face_value name="FirstOrderUpwind"/>
-            <diffusion_scheme name="BassiRebay"/>
+            <diffusion_scheme name="ElementGradient"/>
           </control_volumes>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
@@ -530,6 +530,50 @@
             </constant>
           </type>
         </boundary_conditions>
+        <scalar_field name="Source" rank="0">
+          <diagnostic>
+            <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
+              <string_value lines="20" type="code" language="python">## Calculates the fluid-particle drag force interaction term
+from math import sqrt, pi
+
+vfrac_air = states["Air"].scalar_fields["PhaseVolumeFraction"]
+vfrac_tephra = states["Tephra"].scalar_fields["PhaseVolumeFraction"]
+velocity_air = states["Air"].vector_fields["P1Velocity"]
+velocity_tephra = states["Tephra"].vector_fields["P1Velocity"]
+density_tephra = states["Tephra"].scalar_fields["Density"]
+density_air = states["Air"].scalar_fields["Density"]
+viscosity_air = 1.85e-5
+ie_tephra = states["Tephra"].scalar_fields["InternalEnergy"]
+ie_air = states["Air"].scalar_fields["InternalEnergy"]
+
+d = 2e-4
+k = 0.5
+Cv_air = 1406.0
+Cv_tephra = 954.0
+gamma = 1.33
+
+for i in range(field.node_count):
+  # Reynolds number
+  magnitude = sqrt((velocity_air.node_val(i)[0] - velocity_tephra.node_val(i)[0])**2 + (velocity_air.node_val(i)[1] - velocity_tephra.node_val(i)[1])**2)
+  
+  Re = (density_air.node_val(i)*magnitude*d)/viscosity_air
+  Pr = Cv_air*gamma*viscosity_air/k
+  Nu = (2.0 + 0.16*Re**0.67)
+  Q = (6.0*k*vfrac_tephra.node_val(i)*Nu)/(d**2)
+  Force = Q*((ie_tephra.node_val(i)/Cv_tephra) - (ie_air.node_val(i)/Cv_air))
+  field.set(i, Force)</string_value>
+              <depends>
+                <string_value lines="1">Tephra::PhaseVolumeFraction,Tephra::Density,Tephra::Velocity,Air::PhaseVolumeFraction,Air::Density,Air::Velocity,Air::InternalEnergy,Tephra::InternalEnergy</string_value>
+              </depends>
+            </algorithm>
+            <add_directly_to_rhs/>
+            <output/>
+            <stat/>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+          </diagnostic>
+        </scalar_field>
         <output/>
         <stat/>
         <convergence>
@@ -590,6 +634,44 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <vector_field name="P1Velocity" rank="1">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="Velocity">
+          <solver>
+            <iterative_method name="gmres">
+              <restart>
+                <integer_value rank="0">30</integer_value>
+              </restart>
+            </iterative_method>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1.0e-7</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
     <multiphase_properties>
       <effective_conductivity>
         <real_value rank="0">0.5</real_value>
@@ -683,7 +765,7 @@
         </solver>
         <initial_condition name="WholeMesh">
           <constant>
-            <real_value shape="2" dim1="dim" rank="1">0.0 300.0</real_value>
+            <real_value shape="2" dim1="dim" rank="1">0.0 0.0</real_value>
           </constant>
         </initial_condition>
         <boundary_conditions name="LeftSide">
@@ -729,7 +811,7 @@
               </x_component>
               <y_component>
                 <constant>
-                  <real_value rank="0">300.0</real_value>
+                  <real_value rank="0">141.0</real_value>
                 </constant>
               </y_component>
             </align_bc_with_cartesian>
@@ -819,14 +901,9 @@
           </diagnostics>
         </solver>
         <initial_condition name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
-  from math import exp
-  if(X[1]&lt;=0):
-    return 1.0e-2
-  else:
-    return 1.0e-7</string_value>
-          </python>
+          <constant>
+            <real_value rank="0">1.0e-7</real_value>
+          </constant>
         </initial_condition>
         <boundary_conditions name="LeftSide">
           <surface_ids>
@@ -854,7 +931,7 @@
           </surface_ids>
           <type name="dirichlet">
             <constant>
-              <real_value rank="0">1.0e-2</real_value>
+              <real_value rank="0">1.0e-4</real_value>
             </constant>
           </type>
         </boundary_conditions>
@@ -952,6 +1029,50 @@
             </constant>
           </type>
         </boundary_conditions>
+        <scalar_field name="Source" rank="0">
+          <diagnostic>
+            <algorithm name="scalar_python_diagnostic" material_phase_support="multiple">
+              <string_value lines="20" type="code" language="python">## Calculates the fluid-particle drag force interaction term
+from math import sqrt, pi
+
+vfrac_air = states["Air"].scalar_fields["PhaseVolumeFraction"]
+vfrac_tephra = states["Tephra"].scalar_fields["PhaseVolumeFraction"]
+velocity_air = states["Air"].vector_fields["P1Velocity"]
+velocity_tephra = states["Tephra"].vector_fields["P1Velocity"]
+density_tephra = states["Tephra"].scalar_fields["Density"]
+density_air = states["Air"].scalar_fields["Density"]
+viscosity_air = 1.85e-5
+ie_tephra = states["Tephra"].scalar_fields["InternalEnergy"]
+ie_air = states["Air"].scalar_fields["InternalEnergy"]
+
+d = 2e-4
+k = 0.5
+Cv_air = 1406.0
+Cv_tephra = 954.0
+gamma = 1.33
+
+for i in range(field.node_count):
+  # Reynolds number
+  magnitude = sqrt((velocity_air.node_val(i)[0] - velocity_tephra.node_val(i)[0])**2 + (velocity_air.node_val(i)[1] - velocity_tephra.node_val(i)[1])**2)
+  
+  Re = (density_air.node_val(i)*magnitude*d)/viscosity_air
+  Pr = Cv_air*gamma*viscosity_air/k
+  Nu = (2.0 + 0.16*Re**0.67)
+  Q = (6.0*k*vfrac_tephra.node_val(i)*Nu)/(d**2)
+  Force = Q*((ie_tephra.node_val(i)/Cv_tephra) - (ie_air.node_val(i)/Cv_air))
+  field.set(i, -Force)</string_value>
+              <depends>
+                <string_value lines="1">Tephra::PhaseVolumeFraction,Tephra::Density,Tephra::Velocity,Air::PhaseVolumeFraction,Air::Density,Air::Velocity,Air::InternalEnergy,Tephra::InternalEnergy</string_value>
+              </depends>
+            </algorithm>
+            <add_directly_to_rhs/>
+            <output/>
+            <stat/>
+            <detectors>
+              <include_in_detectors/>
+            </detectors>
+          </diagnostic>
+        </scalar_field>
         <output/>
         <stat/>
         <convergence>
@@ -983,6 +1104,44 @@
         </steady_state>
       </diagnostic>
     </scalar_field>
+    <vector_field name="P1Velocity" rank="1">
+      <diagnostic>
+        <algorithm source_field_type="vector" material_phase_support="single" name="vector_galerkin_projection" source_field_name="Velocity">
+          <solver>
+            <iterative_method name="gmres">
+              <restart>
+                <integer_value rank="0">30</integer_value>
+              </restart>
+            </iterative_method>
+            <preconditioner name="sor"/>
+            <relative_error>
+              <real_value rank="0">1.0e-7</real_value>
+            </relative_error>
+            <max_iterations>
+              <integer_value rank="0">1000</integer_value>
+            </max_iterations>
+            <never_ignore_solver_failures/>
+            <diagnostics>
+              <monitors/>
+            </diagnostics>
+          </solver>
+        </algorithm>
+        <mesh name="CoordinateMesh"/>
+        <output/>
+        <stat>
+          <include_in_stat/>
+        </stat>
+        <convergence>
+          <include_in_convergence/>
+        </convergence>
+        <detectors>
+          <include_in_detectors/>
+        </detectors>
+        <steady_state>
+          <include_in_steady_state/>
+        </steady_state>
+      </diagnostic>
+    </vector_field>
     <multiphase_properties>
       <particle_diameter>
         <real_value rank="0">2e-4</real_value>
@@ -996,8 +1155,5 @@
     <fluid_particle_drag>
       <drag_correlation name="wen_yu"/>
     </fluid_particle_drag>
-    <heat_transfer>
-      <heat_transfer_coefficient name="gunn"/>
-    </heat_transfer>
   </multiphase_interaction>
 </fluidity_options>
