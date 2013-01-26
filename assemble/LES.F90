@@ -26,7 +26,7 @@
 !    USA
 #include "fdebug.h"
 
-module les_viscosity_module
+module les_module
   !!< This module contains several subroutines and functions used to implement LES models
   use state_module
   use fields
@@ -50,31 +50,30 @@ contains
 
   subroutine les_init_diagnostic_fields(state, have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
 
+    ! Arguments
     type(state_type), intent(inout) :: state
-    type(tensor_field), pointer     :: tensorfield
-    logical                         :: have_eddy_visc, have_strain, have_filtered_strain, have_filter_width
+    logical, intent(in) :: have_eddy_visc, have_strain, have_filtered_strain, have_filter_width
+    
+    ! Local variables
+    logical, dimension(4) :: have_diagnostic_field
+    character(len=FIELD_NAME_LEN), dimension(4) :: diagnostic_field_names
+    type(tensor_field), pointer :: field
+    integer :: i
 
-    ewrite(2,*) "Initialising optional dynamic LES diagnostic fields"
-    ! Filter width
-    if(have_filter_width) then
-      tensorfield => extract_tensor_field(state, "FilterWidth")
-      call zero(tensorfield)
-    end if
-    ! Strain rate field S1
-    if(have_strain) then
-      tensorfield => extract_tensor_field(state, "StrainRate")
-      call zero(tensorfield)
-    end if
-    ! Filtered strain rate field S2
-    if(have_filtered_strain) then
-      tensorfield => extract_tensor_field(state, "FilteredStrainRate")
-      call zero(tensorfield)
-    end if
-    ! Eddy viscosity field m_ij
-    if(have_eddy_visc) then
-      tensorfield => extract_tensor_field(state, "EddyViscosity")
-      call zero(tensorfield)
-    end if
+    ewrite(2,*) "Initialising optional LES diagnostic fields"
+    
+    have_diagnostic_field = (/have_eddy_visc, have_strain, have_filtered_strain, have_filter_width/)
+    diagnostic_field_names(1) = "EddyViscosity"
+    diagnostic_field_names(2) = "StrainRate"
+    diagnostic_field_names(3) = "FilteredStrainRate"
+    diagnostic_field_names(4) = "FilterWidth"
+    
+    diagnostic_field_loop: do i = 1, size(diagnostic_field_names)
+      if(have_diagnostic_field(i)) then
+         field => extract_tensor_field(state, diagnostic_field_names(i))
+         call zero(field)
+      end if
+    end do diagnostic_field_loop
 
   end subroutine les_init_diagnostic_fields
 
@@ -82,134 +81,102 @@ contains
                  mesh_size_gi, strain_gi, t_strain_gi, les_tensor_gi, &
                  have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
 
+    ! Arguments
     type(state_type), intent(inout)                             :: state
     type(vector_field), intent(in)                              :: nu
     integer, intent(in)                                         :: ele
     real, dimension(ele_ngi(nu,ele)), intent(in)                :: detwei
-    real, dimension(nu%dim,nu%dim,ele_ngi(nu,ele)),intent(in) &
-                                       & :: strain_gi, t_strain_gi, mesh_size_gi, les_tensor_gi
+    real, dimension(nu%dim,nu%dim,ele_ngi(nu,ele)),intent(in)   :: strain_gi, t_strain_gi, mesh_size_gi, les_tensor_gi
     logical, intent(in) :: have_eddy_visc, have_strain, have_filtered_strain, have_filter_width
-    type(tensor_field), pointer                                 :: tensorfield
+    
+    ! Local variables
+    type(tensor_field), pointer                                 :: field
     real, dimension(nu%dim,nu%dim,ele_loc(nu,ele))              :: tensor_loc
 
     ! Eddy viscosity field m_ij
     if(have_eddy_visc) then
-      tensorfield => extract_tensor_field(state, "EddyViscosity")
+      field => extract_tensor_field(state, "EddyViscosity")
       tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), les_tensor_gi, detwei)
-      call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
+      call addto(field, ele_nodes(nu, ele), tensor_loc)
     end if
 
     ! Strain rate field S1
     if(have_strain) then
-      tensorfield => extract_tensor_field(state, "StrainRate")
+      field => extract_tensor_field(state, "StrainRate")
       tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), strain_gi, detwei)
-      call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
+      call addto(field, ele_nodes(nu, ele), tensor_loc)
     end if
 
     ! Filtered strain rate field S2
     if(have_filtered_strain) then
-      tensorfield => extract_tensor_field(state, "FilteredStrainRate")
+      field => extract_tensor_field(state, "FilteredStrainRate")
       tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), t_strain_gi, detwei)
-      call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
+      call addto(field, ele_nodes(nu, ele), tensor_loc)
     end if
 
     ! Filter width
     if(have_filter_width) then
-      tensorfield => extract_tensor_field(state, "FilterWidth")
+      field => extract_tensor_field(state, "FilterWidth")
       tensor_loc=shape_tensor_rhs(ele_shape(nu, ele), mesh_size_gi, detwei)
-      call addto(tensorfield, ele_nodes(nu, ele), tensor_loc)
+      call addto(field, ele_nodes(nu, ele), tensor_loc)
     end if
 
   end subroutine les_assemble_diagnostic_fields
 
   subroutine les_solve_diagnostic_fields(state, have_eddy_visc, have_strain, have_filtered_strain, have_filter_width)
 
+    ! Arguments
     type(state_type), intent(inout) :: state
     logical, intent(in) :: have_eddy_visc, have_strain, have_filtered_strain, have_filter_width
     
+    ! Local variables
+    logical, dimension(4) :: have_diagnostic_field
+    character(len=FIELD_NAME_LEN), dimension(4) :: diagnostic_field_names
+    type(tensor_field), pointer :: field
+    integer :: i
     type(vector_field), pointer :: u
     type(csr_matrix), pointer :: mass_matrix
-    type(scalar_field), pointer :: lumped_mass, lumped_mass_on_submesh
-    type(scalar_field) :: inv_lumped_mass, inv_lumped_mass_on_submesh
-    type(tensor_field), pointer :: tensorfield
+    type(scalar_field), pointer :: lumped_mass
+    type(scalar_field) :: inv_lumped_mass
     logical :: lump_mass = .false.
-    logical :: lump_mass_on_submesh = .false.
+    logical :: use_submesh = .false.
     
+    ewrite(2,*) "Solving for optional LES diagnostic fields"
+        
     u => extract_vector_field(state, "Velocity")
-    lump_mass = have_option(trim(u%option_path)//"/prognostic/spatial_discretisation"//&
-          &"/continuous_galerkin/mass_terms/lump_mass_matrix") .and. .not.have_option(trim(u%option_path)//&
-          &"/prognostic/spatial_discretisation"//"/continuous_galerkin/mass_terms/lump_mass_matrix/use_submesh")
-          
-    lump_mass_on_submesh = have_option(trim(u%option_path)//&
-          &"/prognostic/spatial_discretisation"//"/continuous_galerkin/mass_terms/lump_mass_matrix/use_submesh")
     
-    ! Eddy viscosity field m_ij
-    if(have_eddy_visc) then
-      tensorfield => extract_tensor_field(state, "EddyViscosity")
-      if(lump_mass) then
-        lumped_mass => get_lumped_mass(state, tensorfield%mesh)
-        call allocate(inv_lumped_mass, tensorfield%mesh)
-        call invert(lumped_mass, inv_lumped_mass)
-        call scale(tensorfield, inv_lumped_mass)
-        call deallocate(inv_lumped_mass)
-      else
-        if(lump_mass_on_submesh) then
-           lumped_mass_on_submesh => get_lumped_mass_on_submesh(state, tensorfield%mesh)
-           call allocate(inv_lumped_mass_on_submesh, tensorfield%mesh)
-           call invert(lumped_mass_on_submesh, inv_lumped_mass_on_submesh)
-           call scale(tensorfield, inv_lumped_mass_on_submesh)
-           call deallocate(inv_lumped_mass_on_submesh)
+    have_diagnostic_field = (/have_eddy_visc, have_strain, have_filtered_strain, have_filter_width/)
+    diagnostic_field_names(1) = "EddyViscosity"
+    diagnostic_field_names(2) = "StrainRate"
+    diagnostic_field_names(3) = "FilteredStrainRate"
+    diagnostic_field_names(4) = "FilterWidth"
+    
+    diagnostic_field_loop: do i = 1, size(diagnostic_field_names)
+      if(have_diagnostic_field(i)) then
+         field => extract_tensor_field(state, diagnostic_field_names(i))
+
+         lump_mass = have_option(trim(field%option_path)//"/diagnostic/mass_matrix"//&
+            &"/use_lumped_mass_matrix")
+         use_submesh = have_option(trim(field%option_path)//"/diagnostic/mass_matrix"//&
+            &"/use_lumped_mass_matrix/use_submesh") ! For P2 meshes.
+            
+         if(lump_mass) then
+            if(use_submesh) then
+               lumped_mass => get_lumped_mass_on_submesh(state, field%mesh)
+            else
+               lumped_mass => get_lumped_mass(state, field%mesh)
+            end if
+            call allocate(inv_lumped_mass, field%mesh)
+            call invert(lumped_mass, inv_lumped_mass)
+            call scale(field, inv_lumped_mass)
+            call deallocate(inv_lumped_mass)
          else
-           mass_matrix => get_mass_matrix(state, tensorfield%mesh)
-           call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
+            mass_matrix => get_mass_matrix(state, field%mesh)
+            call petsc_solve(field, mass_matrix, field, option_path=u%option_path)
          end if
+         
       end if
-    end if
-
-    ! Strain rate field S1
-    if(have_strain) then
-      tensorfield => extract_tensor_field(state, "StrainRate")
-      if(lump_mass) then
-        lumped_mass => get_lumped_mass(state, tensorfield%mesh)
-        call allocate(inv_lumped_mass, tensorfield%mesh)
-        call invert(lumped_mass, inv_lumped_mass)
-        call scale(tensorfield, inv_lumped_mass)
-        call deallocate(inv_lumped_mass)
-      else
-        mass_matrix => get_mass_matrix(state, tensorfield%mesh)
-        call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
-      end if
-    end if
-
-    ! Filtered strain rate field S2
-    if(have_filtered_strain) then
-      tensorfield => extract_tensor_field(state, "FilteredStrainRate")
-      if(lump_mass) then
-        lumped_mass => get_lumped_mass(state, tensorfield%mesh)
-        call allocate(inv_lumped_mass, tensorfield%mesh)
-        call invert(lumped_mass, inv_lumped_mass)
-        call scale(tensorfield, inv_lumped_mass)
-        call deallocate(inv_lumped_mass)
-      else
-        mass_matrix => get_mass_matrix(state, tensorfield%mesh)
-        call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
-      end if
-    end if
-
-    ! Filter width
-    if(have_filter_width) then
-      tensorfield => extract_tensor_field(state, "FilterWidth")
-      if(lump_mass) then
-        lumped_mass => get_lumped_mass(state, tensorfield%mesh)
-        call allocate(inv_lumped_mass, tensorfield%mesh)
-        call invert(lumped_mass, inv_lumped_mass)
-        call scale(tensorfield, inv_lumped_mass)
-        call deallocate(inv_lumped_mass)
-      else
-        mass_matrix => get_mass_matrix(state, tensorfield%mesh)
-        call petsc_solve(tensorfield, mass_matrix, tensorfield, option_path=u%option_path)
-      end if
-    end if
+    end do diagnostic_field_loop
     
   end subroutine les_solve_diagnostic_fields
   
@@ -280,16 +247,6 @@ contains
     deallocate(ui_uj); deallocate(tui_tuj)
 
   end subroutine leonard_tensor
-
-  !subroutine les_viscosity_module_register_diagnostic
-
-  !  dynamic_les_coef, dynamic_eddy_visc, dynamic_strain, dynamic_t_strain, dynamic_filter
-
-  !  call register_diagnostic(dim=1, name="tensor", statistic="effectivestress", material_phase="Fluid")
-
-  !  call set_diagnostic(name, statistic, material_phase, value)
-
-  !end subroutine les_viscosity_module_register_diagnostic
 
   function les_strain_rate(du_t, nu)
     !! Computes the strain rate
@@ -375,4 +332,4 @@ contains
 
   end function wale_viscosity_strength
 
-end module les_viscosity_module
+end module les_module
