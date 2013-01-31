@@ -157,6 +157,8 @@
     ! wetting and drying switch
     logical :: have_wd_abs
 
+    logical :: remove_hydrostatic_balance
+
     ! scale factor for the absorption
     real :: vvr_sf 
     ! scale factor for the free surface stabilisation
@@ -255,6 +257,9 @@
 
       ! for temperature dependent viscosity :
       type(scalar_field), pointer :: temperature
+
+      ! Fields for the remove_hydrostatic_balance option under the Velocity field
+      type(scalar_field), pointer :: hb_buoyancy
 
       integer :: stat, dim, ele, sele
 
@@ -360,6 +365,17 @@
         gravity_magnitude = 0.0
       end if
       ewrite_minmax(buoyancy)
+
+      ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
+      ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
+      ! Here we subtract the hydrostatic component from the density used in the buoyancy term of the momentum equation.
+      if (have_option(trim(u%option_path)//'/prognostic/remove_hydrostatic_balance')) then
+         remove_hydrostatic_balance = .true.
+         hb_buoyancy => extract_scalar_field(state, "HydrostaticBalanceDensity")
+      else
+         remove_hydrostatic_balance = .false.
+         hb_buoyancy => dummyscalar
+      end if
 
       viscosity=>extract_tensor_field(state, "Viscosity", stat)
       have_viscosity = stat == 0
@@ -676,7 +692,7 @@
          call construct_momentum_element_cg(state, ele, big_m, rhs, ct_m, mass, inverse_masslump, &
               x, x_old, x_new, u, oldu, nu, ug, &
               density, ct_rhs, &
-              source, absorption, buoyancy, gravity, &
+              source, absorption, buoyancy, hb_buoyancy, gravity, &
               viscosity, grad_u, &
               tnu, leonard, alpha, &
               gp, surfacetension, &
@@ -1113,7 +1129,7 @@
                                             mass, masslump, &
                                             x, x_old, x_new, u, oldu, nu, ug, &
                                             density, ct_rhs, &
-                                            source, absorption, buoyancy, gravity, &
+                                            source, absorption, buoyancy, hb_buoyancy, gravity, &
                                             viscosity, grad_u, &
                                             tnu, leonard, alpha, &
                                             gp, surfacetension, &
@@ -1159,6 +1175,8 @@
 
       ! Temperature dependent viscosity:
       type(scalar_field), intent(in) :: temperature
+
+      type(scalar_field), intent(in) :: hb_buoyancy
 
       ! Non-linear approximation of the volume fraction
       type(scalar_field), intent(in) :: nvfrac
@@ -1335,7 +1353,7 @@
       
       ! Buoyancy terms
       if(have_gravity) then
-        call add_buoyancy_element_cg(x, ele, test_function, u, buoyancy, gravity, nvfrac, detwei, rhs_addto)
+        call add_buoyancy_element_cg(x, ele, test_function, u, buoyancy, hb_buoyancy, gravity, nvfrac, detwei, rhs_addto)
       end if
       
       ! Surface tension
@@ -1661,12 +1679,12 @@
       
     end subroutine add_sources_element_cg
     
-    subroutine add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, gravity, nvfrac, detwei, rhs_addto)
+    subroutine add_buoyancy_element_cg(positions, ele, test_function, u, buoyancy, hb_buoyancy, gravity, nvfrac, detwei, rhs_addto)
       type(vector_field), intent(in) :: positions
       integer, intent(in) :: ele
       type(element_type), intent(in) :: test_function
       type(vector_field), intent(in) :: u
-      type(scalar_field), intent(in) :: buoyancy
+      type(scalar_field), intent(in) :: buoyancy, hb_buoyancy
       type(vector_field), intent(in) :: gravity
       type(scalar_field), intent(in) :: nvfrac
       real, dimension(ele_ngi(u, ele)), intent(in) :: detwei
@@ -1674,13 +1692,15 @@
       
       real, dimension(ele_ngi(u, ele)) :: nvfrac_gi
       real, dimension(ele_ngi(u, ele)) :: coefficient_detwei
-      
-      if(multiphase) then
-         nvfrac_gi = ele_val_at_quad(nvfrac, ele)
+
+      if (remove_hydrostatic_balance) then
+        coefficient_detwei = gravity_magnitude*(ele_val_at_quad(buoyancy, ele)-ele_val_at_quad(hb_buoyancy, ele))*detwei
+      else
+        coefficient_detwei = gravity_magnitude*ele_val_at_quad(buoyancy, ele)*detwei
       end if
 
-      coefficient_detwei = gravity_magnitude*ele_val_at_quad(buoyancy, ele)*detwei
       if(multiphase) then
+         nvfrac_gi = ele_val_at_quad(nvfrac, ele)
          coefficient_detwei = coefficient_detwei*nvfrac_gi
       end if
 

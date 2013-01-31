@@ -69,7 +69,7 @@
       use state_fields_module
       use Tidal_module
       use Coordinates
-      use diagnostic_fields, only: calculate_diagnostic_variable
+      use diagnostic_fields, only: calculate_diagnostic_variable, calculate_galerkin_projection
       use dgtools, only: dg_apply_mass
       use slope_limiters_dg
       use implicit_solids
@@ -1515,6 +1515,10 @@
          type(vector_field) :: delta_u
          type(vector_field), pointer :: positions
 
+         ! Fields for the remove_hydrostatic_balance option under the Velocity field
+         type(scalar_field), pointer :: hb_pressure
+         type(scalar_field) :: combined_p
+
          ewrite(1,*) 'Entering advance_velocity'
 
 
@@ -1539,6 +1543,22 @@
                &have_option('/ocean_forcing/shelf')) then
             ewrite(1,*) "shelf: Entering compute_pressure_and_tidal_gradient"
                call compute_pressure_and_tidal_gradient(state(istate), delta_u, ct_m(istate)%ptr, p_theta, x)
+            else if (have_option(trim(u%option_path)//'/prognostic/remove_hydrostatic_balance')) then
+               ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
+               ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
+               ! Here we subtract the hydrostatic component from the pressure used in the pressure gradient term of the momentum equation.
+               allocate(hb_pressure)
+               call allocate(hb_pressure, p_theta%mesh, "TempHydrostaticBalancePressure")
+               call zero(hb_pressure)
+               call calculate_galerkin_projection(state(istate),&
+                       extract_scalar_field(state(istate), "HydrostaticBalancePressure"), hb_pressure)
+               call allocate(combined_p,p_theta%mesh, "PressurePerturbation")
+               call set(combined_p, p_theta)
+               call addto(combined_p, hb_pressure, scale=-1.0)
+               call mult_T(delta_u, ct_m(istate)%ptr, combined_p)
+               call deallocate(combined_p)
+               call deallocate(hb_pressure)
+               deallocate(hb_pressure)
             else
                call mult_T(delta_u, ct_m(istate)%ptr, p_theta)
             end if
