@@ -740,7 +740,7 @@
            fs_sf=get_surface_stab_scale_factor(u)
          end if
 
-         if(remove_hydrostatic_balance) then
+         if(remove_hydrostatic_balance.and.integrate_continuity_by_parts.and.(assemble_ct_matrix_here .or. include_pressure_and_continuity_bcs)) then
             call allocate(hb_pressure, p%mesh, "TempHydrostaticBalancePressure")
             call zero(hb_pressure)
             call calculate_galerkin_projection(state,&
@@ -866,7 +866,7 @@
          call deallocate(nvfrac)
       end if
 
-      if(remove_hydrostatic_balance) then
+      if(remove_hydrostatic_balance.and.integrate_continuity_by_parts.and.(assemble_ct_matrix_here .or. include_pressure_and_continuity_bcs)) then
          call deallocate(hb_pressure)
       end if
 
