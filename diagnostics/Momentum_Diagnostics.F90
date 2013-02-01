@@ -505,14 +505,14 @@ contains
 
      ewrite(1,*) 'Entering calculate_speed_of_sound'
      
-     if(.not.have_option(trim(state%option_path)//'/equation_of_state/compressible')) then
+     if(.not.have_option(trim(state%option_path)//'/equation_of_state/compressible/stiffened_gas')) then
        FLExit("You can only compute the speed of sound of a compressible material_phase.")
      end if
      
      x => extract_vector_field(state, "Coordinate")
      density => extract_scalar_field(state, "Density")
      pressure => extract_scalar_field(state, "Pressure")
-     call get_option(trim(state%option_path)//'/equation_of_state/compressible/ratio_specific_heats', gamma, stat)
+     call get_option(trim(state%option_path)//'/equation_of_state/compressible/stiffened_gas/ratio_specific_heats', gamma, stat)
      if(stat /= 0) then
         FLExit("You must specify a ratio_specific_heats value to calculate the speed of sound")
      end if

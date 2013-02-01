@@ -861,11 +861,7 @@ speed_of_sound_algorithm =
       element algorithm {
          attribute name { "speed_of_sound" },
          attribute material_phase_support { "multiple" },
-         ## The particle Reynolds number depends on the Velocity field of both the continuous and dispersed phases,
-         ## and also the Density, PhaseVolumeFraction and Viscosity fields of the continuous phase.
-         element depends {
-            "Pressure", "Density"
-         }
+         attribute depends { "Pressure", "Density" }
       }
    )
 
