@@ -135,6 +135,7 @@ module momentum_DG
   logical :: have_advection
   logical :: move_mesh
   logical :: have_pressure_bc
+  logical :: remove_hydrostatic_balance
   
   real :: gravity_magnitude
 
@@ -214,6 +215,9 @@ contains
     type(vector_field) :: Source, gravity, Abs, Abs_wd
     !! Surface tension field
     type(tensor_field) :: surfacetension
+
+    ! Fields for the remove_hydrostatic_balance option under the Velocity field
+    type(scalar_field), pointer :: hb_buoyancy
 
     !! field over the entire surface mesh, giving bc values
     type(vector_field) :: velocity_bc
@@ -391,6 +395,16 @@ contains
       call zero(gravity)
     end if
     ewrite_minmax(buoyancy)
+
+    ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
+    ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
+    ! Here we subtract the hydrostatic component from the density used in the buoyancy term of the momentum equation.
+    if (have_option(trim(u%option_path)//'/prognostic/remove_hydrostatic_balance')) then
+       remove_hydrostatic_balance = .true.
+       hb_buoyancy => extract_scalar_field(state, "HydrostaticBalanceDensity")
+    else
+       remove_hydrostatic_balance = .false.
+    end if
 
     Viscosity=extract_tensor_field(state, "Viscosity", stat)
     have_viscosity = (stat==0)
@@ -652,7 +666,7 @@ contains
        ele = fetch(colours(clr), nnid)
        call construct_momentum_element_dg(ele, big_m, rhs, &
             & X, U, advecting_velocity, U_mesh, X_old, X_new, &
-            & Source, Buoyancy, gravity, Abs, Viscosity, &
+            & Source, Buoyancy, hb_buoyancy, gravity, Abs, Viscosity, &
             & P, Rho, surfacetension, q_mesh, &
             & velocity_bc, velocity_bc_type, &
             & pressure_bc, pressure_bc_type, &
@@ -709,7 +723,7 @@ contains
   end subroutine construct_momentum_dg
 
   subroutine construct_momentum_element_dg(ele, big_m, rhs, &
-       &X, U, U_nl, U_mesh, X_old, X_new, Source, Buoyancy, gravity, Abs, &
+       &X, U, U_nl, U_mesh, X_old, X_new, Source, Buoyancy, hb_buoyancy, gravity, Abs, &
        &Viscosity, P, Rho, surfacetension, q_mesh, &
        &velocity_bc, velocity_bc_type, &
        &pressure_bc, pressure_bc_type, &
@@ -737,8 +751,9 @@ contains
     type(vector_field), intent(in) :: X, U, U_nl, Source, gravity, Abs
     type(vector_field), pointer :: U_mesh, X_old, X_new
     !! Viscosity
-    type(tensor_field) :: Viscosity
-    type(scalar_field) :: P, Rho
+    type(tensor_field), intent(in) :: Viscosity
+    type(scalar_field), intent(in) :: P, Rho
+    type(scalar_field), intent(in) :: hb_buoyancy
     !! surfacetension
     type(tensor_field) :: surfacetension
     !! field containing the bc values of velocity
@@ -812,7 +827,7 @@ contains
     integer :: start, finish
     
     ! Variable transform times quadrature weights.
-    real, dimension(ele_ngi(U,ele)) :: detwei, detwei_old, detwei_new
+    real, dimension(ele_ngi(U,ele)) :: detwei, detwei_old, detwei_new, coefficient_detwei
     ! Transformed gradient function for velocity.
     real, dimension(ele_loc(U, ele), ele_ngi(U, ele), mesh_dim(U)) :: du_t
     ! Transformed gradient function for grid velocity.
@@ -1240,22 +1255,28 @@ contains
 
     if(have_gravity.and.acceleration.and.assemble_element) then
       ! buoyancy
+      if(remove_hydrostatic_balance) then
+         coefficient_detwei = detwei*gravity_magnitude*(ele_val_at_quad(buoyancy, ele)-ele_val_at_quad(hb_buoyancy, ele))
+      else
+         coefficient_detwei = detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele)
+      end if
+
       if (on_sphere) then
       ! If were on a spherical Earth evaluate the direction of the gravity vector
       ! exactly at quadrature points.
         rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
                                     sphere_inward_normal_at_quad_ele(X, ele), &
-                                    detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele))
+                                    coefficient_detwei)
       else
       
         if(multiphase) then
           rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
                                     ele_val_at_quad(gravity, ele), &
-                                    detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele)*nvfrac_gi)
+                                    coefficient_detwei*nvfrac_gi)
         else
           rhs_addto(:, :loc) = rhs_addto(:, :loc) + shape_vector_rhs(u_shape, &
                                     ele_val_at_quad(gravity, ele), &
-                                    detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele))
+                                    coefficient_detwei)
         end if
         
       end if
