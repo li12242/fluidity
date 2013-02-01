@@ -60,6 +60,7 @@
     use fefields
     use rotated_boundary_conditions
     use Coordinates
+    use diagnostic_fields, only: calculate_galerkin_projection
     use multiphase_module
     use edge_length_module
     use physics_from_options
@@ -260,6 +261,7 @@
 
       ! Fields for the remove_hydrostatic_balance option under the Velocity field
       type(scalar_field), pointer :: hb_buoyancy
+      type(scalar_field) :: hb_pressure
 
       integer :: stat, dim, ele, sele
 
@@ -738,6 +740,13 @@
            fs_sf=get_surface_stab_scale_factor(u)
          end if
 
+         if(remove_hydrostatic_balance) then
+            call allocate(hb_pressure, p%mesh, "TempHydrostaticBalancePressure")
+            call zero(hb_pressure)
+            call calculate_galerkin_projection(state,&
+                      extract_scalar_field(state, "HydrostaticBalancePressure"), hb_pressure)
+         end if
+
          surface_element_loop: do sele=1, surface_element_count(u)
             
             ! if no_normal flow and no other condition in the tangential directions, or if periodic
@@ -753,6 +762,7 @@
                  inverse_masslump, x, u, nu, ug, density, gravity, &
                  velocity_bc, velocity_bc_type, &
                  pressure_bc, pressure_bc_type, &
+                 hb_pressure, &
                  assemble_ct_matrix_here, include_pressure_and_continuity_bcs, oldu, nvfrac)
             
          end do surface_element_loop
@@ -856,6 +866,10 @@
          call deallocate(nvfrac)
       end if
 
+      if(remove_hydrostatic_balance) then
+         call deallocate(hb_pressure)
+      end if
+
       if (stabilisation_scheme == STABILISATION_SUPG) then
          do i = 1, num_threads
             call deallocate(supg_element(i))
@@ -903,6 +917,7 @@
                                                      masslump, x, u, nu, ug, density, gravity, &
                                                      velocity_bc, velocity_bc_type, &
                                                      pressure_bc, pressure_bc_type, &
+                                                     hb_pressure, &
                                                      assemble_ct_matrix_here, include_pressure_and_continuity_bcs,&
                                                      oldu, nvfrac)
 
@@ -920,6 +935,7 @@
       type(vector_field), intent(in) :: u, nu
       type(vector_field), pointer :: ug
       type(scalar_field), intent(in) :: density
+      type(scalar_field), intent(in) :: hb_pressure
       type(vector_field), pointer, intent(in) :: gravity 
 
       type(vector_field), intent(in) :: velocity_bc
@@ -1032,8 +1048,16 @@
                 !      /
                 ! add -|  N_i M_j \vec n p_j, where p_j are the prescribed bc values
                 !      /
-                call addto(rhs, dim, u_nodes_bdy, -matmul( ele_val(pressure_bc, sele), &
+                if (remove_hydrostatic_balance) then
+                   ! Here we subtract the hydrostatic component from the pressure boundary condition used in the surface integral when
+                   ! assembling ct_m. Hopefully this will be the same as the pressure boundary condition itself.
+                   call addto(rhs, dim, u_nodes_bdy, -matmul(face_val(hb_pressure, sele)-ele_val(pressure_bc, sele), &
                                                             ct_mat_bdy(dim,:,:) ))
+                else
+                   call addto(rhs, dim, u_nodes_bdy, -matmul(ele_val(pressure_bc, sele), &
+                                                            ct_mat_bdy(dim,:,:) ))
+                end if
+
              end if
           end do
         end if
