@@ -15,13 +15,13 @@
     <variable name="gas_velocity_max" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("inlet_velocity_bc_incompressible.stat")
-gas_velocity_max = s["Gas"]["Velocity%1"]["max"]
+gas_velocity_max = s["Gas"]["Velocity%1"]["max"][-1]
     </variable>
   
     <variable name="gas_velocity_min" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("inlet_velocity_bc_incompressible.stat")
-gas_velocity_min = s["Gas"]["Velocity%1"]["min"]
+gas_velocity_min = s["Gas"]["Velocity%1"]["min"][-1]
     </variable>
 
     <variable name="solvers_converged" language="python">
@@ -32,8 +32,8 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
   </variables>
     
   <pass_tests>
-    <test name="Maximum Gas::Velocity remains (near) 300 m/s" language="python">
-assert(abs(gas_velocity_max).all() - 300 &lt; 1e-7 and abs(gas_velocity_min).all() - 300 &lt; 1e-7)
+    <test name="Gas::Velocity is 300 m/s everywhere" language="python">
+assert(abs(gas_velocity_max - 300) &lt; 1e-7 and abs(gas_velocity_min - 300) &lt; 1e-7)
     </test>
      
     <test name="Solvers converged" language="python">
