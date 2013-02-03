@@ -218,6 +218,7 @@ contains
 
     ! Fields for the remove_hydrostatic_balance option under the Velocity field
     type(scalar_field), pointer :: hb_buoyancy
+    type(scalar_field) :: hb_pressure
 
     !! field over the entire surface mesh, giving bc values
     type(vector_field) :: velocity_bc
@@ -402,6 +403,13 @@ contains
     if (have_option(trim(u%option_path)//'/prognostic/remove_hydrostatic_balance')) then
        remove_hydrostatic_balance = .true.
        hb_buoyancy => extract_scalar_field(state, "HydrostaticBalanceDensity")
+
+       if(l_include_pressure_bcs) then
+          call allocate(hb_pressure, p%mesh, "TempHydrostaticBalancePressure")
+          call zero(hb_pressure)
+          call calculate_galerkin_projection(state,&
+                  extract_scalar_field(state, "HydrostaticBalancePressure"), hb_pressure)
+       end if
     else
        remove_hydrostatic_balance = .false.
     end if
@@ -666,7 +674,7 @@ contains
        ele = fetch(colours(clr), nnid)
        call construct_momentum_element_dg(ele, big_m, rhs, &
             & X, U, advecting_velocity, U_mesh, X_old, X_new, &
-            & Source, Buoyancy, hb_buoyancy, gravity, Abs, Viscosity, &
+            & Source, Buoyancy, hb_buoyancy, hb_pressure, gravity, Abs, Viscosity, &
             & P, Rho, surfacetension, q_mesh, &
             & velocity_bc, velocity_bc_type, &
             & pressure_bc, pressure_bc_type, &
@@ -715,6 +723,9 @@ contains
     if(multiphase) then
       call deallocate(nvfrac)
     end if
+    if(remove_hydrostatic_balance .and. l_include_pressure_bcs) then
+       call deallocate(hb_pressure) 
+    end if
     
     ewrite(1, *) "Exiting construct_momentum_dg"
 
@@ -723,7 +734,7 @@ contains
   end subroutine construct_momentum_dg
 
   subroutine construct_momentum_element_dg(ele, big_m, rhs, &
-       &X, U, U_nl, U_mesh, X_old, X_new, Source, Buoyancy, hb_buoyancy, gravity, Abs, &
+       &X, U, U_nl, U_mesh, X_old, X_new, Source, Buoyancy, hb_buoyancy, hb_pressure, gravity, Abs, &
        &Viscosity, P, Rho, surfacetension, q_mesh, &
        &velocity_bc, velocity_bc_type, &
        &pressure_bc, pressure_bc_type, &
@@ -753,7 +764,7 @@ contains
     !! Viscosity
     type(tensor_field), intent(in) :: Viscosity
     type(scalar_field), intent(in) :: P, Rho
-    type(scalar_field), intent(in) :: hb_buoyancy
+    type(scalar_field), intent(in) :: hb_buoyancy, hb_pressure
     !! surfacetension
     type(tensor_field) :: surfacetension
     !! field containing the bc values of velocity
@@ -1698,7 +1709,7 @@ contains
                    call construct_momentum_interface_dg(ele, face, face_2, ni,&
                         & big_m_tensor_addto, &
                         & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
-                        & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
+                        & Rho, hb_pressure, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, &
                         & subcycle_m_tensor_addto, nvfrac, &
@@ -1711,7 +1722,7 @@ contains
                    call construct_momentum_interface_dg(ele, face, face_2, ni,&
                         & big_m_tensor_addto, &
                         & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
-                        & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
+                        & Rho, hb_pressure, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, &
                         & subcycle_m_tensor_addto, nvfrac)
@@ -1934,7 +1945,7 @@ contains
 
   subroutine construct_momentum_interface_dg(ele, face, face_2, ni, &
        & big_m_tensor_addto, &
-       & rhs_addto, Grad_U_mat, Div_U_mat, X, Rho, U,&
+       & rhs_addto, Grad_U_mat, Div_U_mat, X, Rho, hb_pressure, U,&
        & U_nl, U_mesh, P, q_mesh, surfacetension, &
        & velocity_bc, velocity_bc_type, &
        & pressure_bc, pressure_bc_type, &
@@ -1955,7 +1966,7 @@ contains
     ! We pass these additional fields to save on state lookups.
     type(vector_field), intent(in) :: X, U, U_nl
     type(vector_field), pointer :: U_mesh
-    type(scalar_field), intent(in) :: Rho, P
+    type(scalar_field), intent(in) :: Rho, P, hb_pressure
     type(scalar_field), intent(in) :: nvfrac
     !! Mesh of the auxiliary variable in the second order operator.
     type(mesh_type), intent(in) :: q_mesh
@@ -2298,8 +2309,13 @@ contains
        ! add -|  N_i M_j \vec n p_j, where p_j are the prescribed bc values
        !      /
        do dim = 1, U%dim
-          rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) - &
-               matmul( ele_val(pressure_bc, face), mnCT(1,dim,:,:) )
+          if(remove_hydrostatic_balance) then
+            rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) - &
+                 matmul( face_val(hb_pressure, face) - ele_val(pressure_bc, face), mnCT(1,dim,:,:) )
+          else
+            rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) - &
+                 matmul( ele_val(pressure_bc, face), mnCT(1,dim,:,:) )
+          end if
        end do
     end if
 
