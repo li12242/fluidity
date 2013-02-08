@@ -1192,7 +1192,7 @@ contains
         ! [\rho^{n+1}M + dt*A_m + dt*theta*D_m](T^{n+1}-T^{n})/dt = rhs - [A_m + D_m]*T^{n} - diff_rhs - (p+atm_p)*CT_m*u
 
         ! construct rhs
-        if(have_option(trim(tfield%option_path)//'/prognostic/equation[0]/include_pressure_term')) then
+        if(have_option(trim(state(1)%option_path)//'/equation_of_state/compressible')) then
            p=>extract_scalar_field(state(1), "Pressure")
            ewrite_minmax(p)
            assert(p%mesh==tfield%mesh)
@@ -1949,7 +1949,7 @@ contains
               ghost_oldtdensity_ele_bdy=ele_val(tdensity_bc, sele) ! not considering time varying bcs yet
             else
               if(multiphase) then
-                 ghost_oldtdensity_ele_bdy=face_val(oldtdensity, sele)*face_val(nvfrac, sele)
+                 ghost_oldtdensity_ele_bdy=face_val(oldtdensity, sele)*face_val(oldvfrac, sele)
               else
                  ghost_oldtdensity_ele_bdy=face_val(oldtdensity, sele)
               end if
@@ -1960,7 +1960,7 @@ contains
             
             if(multiphase) then
                tdensity_ele_bdy=tdensity_ele_bdy*face_val(nvfrac, sele)
-               oldtdensity_ele_bdy=oldtdensity_ele_bdy*face_val(nvfrac, sele)
+               oldtdensity_ele_bdy=oldtdensity_ele_bdy*face_val(oldvfrac, sele)
             end if
           end if
         end if

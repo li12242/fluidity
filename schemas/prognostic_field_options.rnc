@@ -1965,8 +1965,7 @@ scalar_equation_choice =
          ## Uses a non-conservative time discretisation.
          element equation {
             attribute name { "InternalEnergy" },
-            equation_coefficients,
-            extra_internal_energy_terms?
+            equation_coefficients
          }|
          ## Option to solve for electrical potential from
          ## electrokinetic, electrochemical or electrothermal sources 
@@ -2010,15 +2009,6 @@ equation_coefficients =
         attribute name { string },
         coefficient_discretisation_options?
       }
-   )
-   
-extra_internal_energy_terms =
-   (    
-      ## Adds the pressure term: -p*div(u)
-      ## ( or, for multiphase simulations, -vfrac*p*div(u) ).
-      element include_pressure_term {
-         empty
-      }?
    )
    
 coefficient_discretisation_options =
