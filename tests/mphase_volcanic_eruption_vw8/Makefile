@@ -1,11 +1,10 @@
 preprocess:
 	@echo **********Creating 2D mesh
-	../../bin/gmsh2triangle --2d src/mphase_volcanic_eruption_vw8.msh
-	../../bin/fldecomp -n 4 mphase_volcanic_eruption_vw8
+	../../bin/fldecomp -n 2 -m gmsh src/mphase_volcanic_eruption_vw8
 
 run:
 	@echo **********Running simulation
-	nohup mpiexec -n 4 ../../bin/fluidity mphase_volcanic_eruption_vw8.flml &
+	mpiexec -n 2 ../../bin/fluidity mphase_volcanic_eruption_vw8.flml
 
 input: clean preprocess
 
