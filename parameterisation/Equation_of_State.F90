@@ -389,6 +389,7 @@ contains
     real :: bulk_sound_speed_squared, atmospheric_pressure
     type(scalar_field) :: energy_remap, pressure_remap, density_remap
     logical :: incompressible
+    real :: upper_cap, lower_cap ! For bounding the Density field
     
     call get_option(trim(eos_path)//'/compressible/stiffened_gas/reference_density', &
                         reference_density, default=0.0)
@@ -451,7 +452,13 @@ contains
           call addto(density, pressure_remap)
           call scale(density, drhodp)
 
-          call bound(density, 1.0e-4, huge(0.0)*epsilon(0.0)) 
+          if(have_option(trim(density%option_path)//"/cap_values/")) then
+            call get_option(trim(density%option_path)//"/cap_values/upper_cap", &
+                           upper_cap, default=huge(0.0)*epsilon(0.0))
+            call get_option(trim(density%option_path)//"/cap_values/lower_cap", &
+                           lower_cap, default=-huge(0.0)*epsilon(0.0))
+            call bound(density, lower_cap, upper_cap) 
+          end if
           
           call deallocate(pressure_remap)
         else
@@ -476,7 +483,14 @@ contains
           
           call allocate(density_remap, drhodp%mesh, "RemappedDensity")
           call remap_field(density_local, density_remap)
-          call bound(density_remap, 1.0e-4, huge(0.0)*epsilon(0.0))
+
+          if(have_option(trim(density_local%option_path)//"/cap_values/")) then
+            call get_option(trim(density%option_path)//"/cap_values/upper_cap", &
+                           upper_cap, default=huge(0.0)*epsilon(0.0))
+            call get_option(trim(density%option_path)//"/cap_values/lower_cap", &
+                           lower_cap, default=-huge(0.0)*epsilon(0.0))
+            call bound(density_local, lower_cap, upper_cap) 
+          end if
           
           call set(pressure, drhodp)
           call invert(pressure)
