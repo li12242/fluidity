@@ -1,32 +1,25 @@
-dx = 100;
-Point(1) = {0.0, 0.0, 0.0, dx};
-Point(2) = {0.0, 10000.0, 0.0, dx};
-Point(3) = {20000.0, 10000.0, 0.0, dx};
-Point(4) = {20000.0, 0.0, 0.0, dx};
-Point(5) = {10000.0, 0.0, 0.0, dx};
-Point(6) = {9600.0, 0.0, 0.0, dx};
+dx = 1000;
+Point(1) = {0, 0, 0, dx};
+Point(2) = {150000, 0, 0, dx};
+Point(3) = {150400, 0, 0, dx};
+Point(4) = {300000, 0, 0, dx};
+Line(1) = {1, 2};
+Line(2) = {2, 3};
+Line(3) = {3, 4};
 
-Line(1) = {1,2};
-Line(2) = {2,3};
-Line(3) = {3,4};
-Line(4) = {4,5};
-Line(5) = {5,6};
-Line(6) = {6,1};
-Line Loop(7) = {1,2,3,4,5,6};
+Extrude {0,300000,0} {
+Line{1}; Layers{300000/dx};
+}
+Extrude {0,300000,0} {
+Line{2}; Layers{300000/dx};
+}
+Extrude {0,300000,0} {
+Line{3}; Layers{300000/dx};
+}
 
-Plane Surface(8) = {7};
-
-// Left side
-Physical Line(111) = {1};
-// Right side
-Physical Line(222) = {3};
-// Top
-Physical Line(333) = {2};
-// Bottom (EXCLUDING VENT)
-Physical Line(444) = {4, 6};
-// Bottom (VENT)
-Physical Line(999) = {5};
-
-// This is just to ensure all the interior
-// elements get written out. 
-Physical Surface(9) = {8};
+Physical Line(333) = {4, 8, 12};
+Physical Line(111) = {5};
+Physical Line(222) = {14};
+Physical Line(444) = {1, 3};
+Physical Line(999) = {2};
+Physical Surface(667) = {7,11,15};

@@ -1,7 +1,6 @@
 preprocess:
 	@echo **********Creating 2D mesh
-	../../bin/gmsh2triangle --2d src/mphase_volcanic_eruption_vw49.msh
-	../../bin/fldecomp -n 4 mphase_volcanic_eruption_vw49
+	../../bin/fldecomp -n 4 -m gmsh src/mphase_volcanic_eruption_vw49
 
 run:
 	@echo **********Running simulation
