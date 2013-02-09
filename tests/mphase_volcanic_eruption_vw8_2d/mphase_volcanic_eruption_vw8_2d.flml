@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <fluidity_options>
   <simulation_name>
-    <string_value lines="1">mphase_volcanic_eruption_vw8</string_value>
+    <string_value lines="1">mphase_volcanic_eruption_vw8_2d</string_value>
   </simulation_name>
   <problem_type>
     <string_value lines="1">multiphase</string_value>
@@ -11,7 +11,7 @@
       <integer_value rank="0">2</integer_value>
     </dimension>
     <mesh name="CoordinateMesh">
-      <from_file file_name="src/mphase_volcanic_eruption_vw8">
+      <from_file file_name="src/mphase_volcanic_eruption_vw8_2d">
         <format name="gmsh"/>
         <stat>
           <include_in_stat/>
