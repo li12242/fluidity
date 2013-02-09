@@ -30,6 +30,7 @@ module equation_of_state
   !!< This module contains functions used to evaluate the equation of state.
   use fldebug
   use fields
+  use field_options
   use state_module
   use global_parameters, only: OPTION_PATH_LEN
   use sediment, only: get_n_sediment_fields, get_sediment_item
@@ -436,6 +437,7 @@ contains
         ! density = reference_density
         call set(density, reference_density)
       else
+        density_local=>extract_scalar_field(state,'Density')
         pressure_local=>extract_scalar_field(state,'Pressure',stat=stat)
         if (stat==0) then
           assert(density%mesh==drhodp%mesh)
@@ -452,10 +454,10 @@ contains
           call addto(density, pressure_remap)
           call scale(density, drhodp)
 
-          if(have_option(trim(density%option_path)//"/cap_values/")) then
-            call get_option(trim(density%option_path)//"/cap_values/upper_cap", &
+          if(have_option(trim(complete_field_path(density_local%option_path))//"/cap_values")) then
+            call get_option(trim(complete_field_path(density_local%option_path))//"/cap_values/upper_cap", &
                            upper_cap, default=huge(0.0)*epsilon(0.0))
-            call get_option(trim(density%option_path)//"/cap_values/lower_cap", &
+            call get_option(trim(complete_field_path(density_local%option_path))//"/cap_values/lower_cap", &
                            lower_cap, default=-huge(0.0)*epsilon(0.0))
             call bound(density, lower_cap, upper_cap) 
           end if
@@ -484,10 +486,10 @@ contains
           call allocate(density_remap, drhodp%mesh, "RemappedDensity")
           call remap_field(density_local, density_remap)
 
-          if(have_option(trim(density_local%option_path)//"/cap_values/")) then
-            call get_option(trim(density%option_path)//"/cap_values/upper_cap", &
+          if(have_option(trim(complete_field_path(density_local%option_path))//"/cap_values")) then
+            call get_option(trim(complete_field_path(density_local%option_path))//"/cap_values/upper_cap", &
                            upper_cap, default=huge(0.0)*epsilon(0.0))
-            call get_option(trim(density%option_path)//"/cap_values/lower_cap", &
+            call get_option(trim(complete_field_path(density_local%option_path))//"/cap_values/lower_cap", &
                            lower_cap, default=-huge(0.0)*epsilon(0.0))
             call bound(density_local, lower_cap, upper_cap) 
           end if
