@@ -320,6 +320,11 @@
           <include_in_steady_state/>
         </steady_state>
         <consistent_interpolation/>
+        <cap_values>
+          <lower_cap>
+            <real_value rank="0">1.0e-4</real_value>
+          </lower_cap>
+        </cap_values>
       </prognostic>
     </scalar_field>
     <vector_field name="Velocity" rank="1">
