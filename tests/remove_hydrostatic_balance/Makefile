@@ -1,10 +1,15 @@
 preprocess:
 	@echo **********Creating 1D mesh
 	../../bin/interval --dx=100.0 -- 0.0 10000.0 line
+	@echo **********Creating pseudo-1D mesh
+	gmsh -2 -o remove_hydrostatic_balance_pseudo1d.msh src/remove_hydrostatic_balance_pseudo1d.geo
+	../../bin/gmsh2triangle --2d remove_hydrostatic_balance_pseudo1d.msh
 
 run:
-	@echo **********Running simulation
-	../../bin/fluidity -v2 -l remove_hydrostatic_balance.flml
+	@echo **********Running 1D simulation
+	#../../bin/fluidity -v2 -l remove_hydrostatic_balance_1d.flml
+	@echo **********Running pseudo-1D simulation
+	../../bin/fluidity -v2 -l remove_hydrostatic_balance_pseudo1d.flml
 
 input: clean preprocess
 
