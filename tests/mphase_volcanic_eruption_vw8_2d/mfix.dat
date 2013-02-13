@@ -1,5 +1,5 @@
 #
-#  Granular Flow in a Settling Tank
+#  Volcanic eruption VW8
 #
  
 #
@@ -17,7 +17,7 @@
    DT_MAX = 1.0
 
    GRAVITY = 9.8
-   #P_ref = 0
+   P_ref = 0#101325
    DRAG_TYPE = 'WEN_YU'
 
 #
@@ -25,16 +25,18 @@
 #
   COORDINATES = 'CARTESIAN'
                                      
-  XLENGTH = 10000.0    IMAX = 100
-  YLENGTH = 10000.0    JMAX = 100
+  XLENGTH = 7000.0    IMAX = 70
+  YLENGTH = 7000.0    JMAX = 70
   ZLENGTH = 1.0     KMAX = 1
-   NO_K = .TRUE.
+  NO_K = .TRUE.
 #
 # GAS SECTION
 #
-  #MW_g  = 0.029                        ! molecular weight of gas species 
+  MW_g(1)  = 28.42                      ! molecular weight of gas species 
+  MW_AVG  = 28.42
   MU_g0 = 0.0000185                    ! Gas viscosity
-  RO_g0  = 1.224372462
+  Dif_g0 = 0.
+  #RO_g0  = 1.224372462
   C_pg0 = 1005.2
   K_g0 = 0.05
 
@@ -59,9 +61,9 @@
 #
        !
   IC_x_w        =  0.0
-  IC_x_e        =  10000.0
+  IC_x_e        =  7000.0
   IC_y_s        =  0.0
-  IC_y_n        =  10000.0
+  IC_y_n        =  7000.0
 
   IC_U_g        =  0.0 
   IC_V_g        =  0.0
@@ -75,17 +77,15 @@
   IC_U_s(1,1)   =  0.0
   IC_V_s(1,1)   =  0.0
 
-  #IC_P_g = 0
-
 #
 # BOUNDARY CONDITIONS SECTION
 #
        !
        !            Inlet            Outlet
   BC_x_w        =    0.0             0.0
-  BC_x_e        =    200.0           10000.0
-  BC_y_s        =    0.0             10000.0
-  BC_y_n        =    0.0             10000.0
+  BC_x_e        =    200.0           7000.0
+  BC_y_s        =    0.0             7000.0
+  BC_y_n        =    0.0             7000.0
   BC_TYPE       = 'MASS_INFLOW' 'P_OUTFLOW'
 
   BC_ep_g       =    0.99
@@ -96,7 +96,7 @@
   BC_T_g(1)        = 1200.0
   BC_T_s(1,1)      = 1200.0
 
-  BC_P_g        = 101325 0
+  BC_P_g        = 101325.0 44341.740380666
 
   BC_ROP_s(1,1) = 24.0
   BC_U_s(1,1)   =  0.0 
