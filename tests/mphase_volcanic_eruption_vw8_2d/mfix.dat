@@ -1,0 +1,144 @@
+#
+#  Granular Flow in a Settling Tank
+#
+ 
+#
+# RUN CONTROL SECTION
+#
+
+  RUN_NAME = 'VOLCANIC'
+  RUN_TYPE = 'new'
+  DESCRIPTION = 'Volcanic eruption VW8'
+  UNITS = 'SI'
+  ENERGY_EQ = .TRUE.    ! do not solve energy equations
+  SPECIES_EQ = .FALSE.  .FALSE.
+
+   TIME = 0.0   TSTOP = 200.0  DT = 1.0
+   DT_MAX = 1.0
+
+   GRAVITY = 9.8
+   #P_ref = 0
+   DRAG_TYPE = 'WEN_YU'
+
+#
+# GEOMETRY SECTION
+#
+  COORDINATES = 'CARTESIAN'
+                                     
+  XLENGTH = 10000.0    IMAX = 100
+  YLENGTH = 10000.0    JMAX = 100
+  ZLENGTH = 1.0     KMAX = 1
+   NO_K = .TRUE.
+#
+# GAS SECTION
+#
+  #MW_g  = 0.029                        ! molecular weight of gas species 
+  MU_g0 = 0.0000185                    ! Gas viscosity
+  RO_g0  = 1.224372462
+  C_pg0 = 1005.2
+  K_g0 = 0.05
+
+#
+# PARTICLE SECTION
+#
+  e    = 0.8                          ! coefficient of restitution
+  phi  = 0.0
+
+  MMAX = 1                            ! No of solids
+  D_p0          =  2E-4
+  RO_s          =  2400.0
+
+  EP_star = 0.6                       ! maximum possible packing
+  CLOSE_PACKED = .FALSE.
+
+  C_ps0 = 1255.0
+  K_s0 = 2.2
+
+#
+# INITIAL CONDITIONS SECTION
+#
+       !
+  IC_x_w        =  0.0
+  IC_x_e        =  10000.0
+  IC_y_s        =  0.0
+  IC_y_n        =  10000.0
+
+  IC_U_g        =  0.0 
+  IC_V_g        =  0.0
+
+  IC_ep_g       =  0.9999999
+  IC_T_g        =  288.15
+  IC_X_g(1,1)   =  1.0
+
+  IC_T_s        =  288.15
+  IC_X_s        =  1.0
+  IC_U_s(1,1)   =  0.0
+  IC_V_s(1,1)   =  0.0
+
+  #IC_P_g = 0
+
+#
+# BOUNDARY CONDITIONS SECTION
+#
+       !
+       !            Inlet            Outlet
+  BC_x_w        =    0.0             0.0
+  BC_x_e        =    200.0           10000.0
+  BC_y_s        =    0.0             10000.0
+  BC_y_n        =    0.0             10000.0
+  BC_TYPE       = 'MASS_INFLOW' 'P_OUTFLOW'
+
+  BC_ep_g       =    0.99
+
+  BC_U_g        = 0.0
+  BC_V_g        = 300.0
+  BC_W_g        = 0.0
+  BC_T_g(1)        = 1200.0
+  BC_T_s(1,1)      = 1200.0
+
+  BC_P_g        = 101325 0
+
+  BC_ROP_s(1,1) = 24.0
+  BC_U_s(1,1)   =  0.0 
+  BC_V_s(1,1)   =  300.0 
+  BC_W_s(1,1)   =  0.0
+#
+# OUTPUT CONTROL SECTION
+#
+   RES_DT = 0.01   
+         !
+         !  EP_g     P_g     U_g   U_s   ROP_s  T_g      X_g
+         !           P_star  V_g   V_s          T_s      X_s       G
+         !                   W_g   W_s           
+   SPX_DT = 0.1     0.1     0.1   0.1   0.1    0.1       0.1   0.1  0.1
+
+   NLOG = 25
+
+   FULL_LOG = .T.
+  
+# DMP control
+  
+  NODESI = 1   NODESJ = 1   NODESK = 1
+
+!  Sweep Direction
+
+LEQ_SWEEP(1) = 'ISIS'
+LEQ_SWEEP(2) = 'ISIS'
+LEQ_SWEEP(3) = 'ISIS'
+LEQ_SWEEP(4) = 'ISIS'
+LEQ_SWEEP(5) = 'ISIS'
+LEQ_SWEEP(6) = 'ISIS'
+LEQ_SWEEP(7) = 'ISIS'
+LEQ_SWEEP(8) = 'ISIS'
+LEQ_SWEEP(9) = 'ISIS'
+
+LEQ_IT(1) = 50
+LEQ_IT(2) = 50
+LEQ_IT(3) = 50
+LEQ_IT(4) = 50
+LEQ_IT(5) = 50
+LEQ_IT(6) = 50
+LEQ_IT(7) = 50
+LEQ_IT(8) = 50
+LEQ_IT(9) = 50
+
