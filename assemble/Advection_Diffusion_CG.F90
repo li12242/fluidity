@@ -523,7 +523,8 @@ contains
       olddensity=>extract_scalar_field(state, "Old"//trim(density_name))
       ewrite_minmax(olddensity)
       
-      if(have_option(trim(state%option_path)//'/equation_of_state/compressible')) then         
+      if(have_option(trim(state%option_path)//'/equation_of_state/compressible') .and. &
+         & .not.have_option(trim(tfield%option_path)//'/prognostic/equation[0]/exclude_pressure_term')) then         
          call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", density_theta)
          compressible = .true.
          
