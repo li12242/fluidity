@@ -12,6 +12,7 @@
   UNITS = 'SI'
   ENERGY_EQ = .TRUE.    ! do not solve energy equations
   SPECIES_EQ = .FALSE.  .FALSE.
+  COORDINATES = 'CARTESIAN'
 
    TIME = 0.0   TSTOP = 200.0  DT = 0.05
    DT_MAX = 0.05
@@ -81,13 +82,583 @@
 #
 # BOUNDARY CONDITIONS SECTION
 #
-       !
-       !            Inlet            Outlet
-  BC_x_w        =    0.0             0.0
-  BC_x_e        =    200.0           7000.0
-  BC_y_s        =    0.0             7000.0
-  BC_y_n        =    0.0             7000.0
-  BC_TYPE       = 'MASS_INFLOW' 'P_OUTFLOW'
+BC_x_w(1) = 0.0
+BC_x_e(1) = 200.0
+BC_y_s(1) = 0.0
+BC_y_n(1) = 0.0
+BC_TYPE(1) = 'MASS_INFLOW'
+BC_P_g(1) = 101325.0
+
+
+BC_x_w(2) = 0.0
+BC_x_e(2) = 7000.0
+BC_y_s(2) = 7000.0
+BC_y_n(2) = 7000.0
+BC_TYPE(2) = 'P_OUTFLOW'
+BC_P_g(2) = 44906.587482293
+
+
+BC_x_e(3) = 7000
+BC_x_w(3) = 7000
+BC_y_n(3) = 100
+BC_y_s(3) = 0
+BC_TYPE(3) = 'P_OUTFLOW'
+BC_P_g(3) = 100153.918881
+
+
+BC_x_e(4) = 7000
+BC_x_w(4) = 7000
+BC_y_n(4) = 200
+BC_y_s(4) = 100
+BC_TYPE(4) = 'P_OUTFLOW'
+BC_P_g(4) = 98996.372734
+
+
+BC_x_e(5) = 7000
+BC_x_w(5) = 7000
+BC_y_n(5) = 300
+BC_y_s(5) = 200
+BC_TYPE(5) = 'P_OUTFLOW'
+BC_P_g(5) = 97852.205125
+
+
+BC_x_e(6) = 7000
+BC_x_w(6) = 7000
+BC_y_n(6) = 400
+BC_y_s(6) = 300
+BC_TYPE(6) = 'P_OUTFLOW'
+BC_P_g(6) = 96721.261430
+
+
+BC_x_e(7) = 7000
+BC_x_w(7) = 7000
+BC_y_n(7) = 500
+BC_y_s(7) = 400
+BC_TYPE(7) = 'P_OUTFLOW'
+BC_P_g(7) = 95603.388812
+
+
+BC_x_e(8) = 7000
+BC_x_w(8) = 7000
+BC_y_n(8) = 600
+BC_y_s(8) = 500
+BC_TYPE(8) = 'P_OUTFLOW'
+BC_P_g(8) = 94498.436198
+
+
+BC_x_e(9) = 7000
+BC_x_w(9) = 7000
+BC_y_n(9) = 700
+BC_y_s(9) = 600
+BC_TYPE(9) = 'P_OUTFLOW'
+BC_P_g(9) = 93406.254265
+
+
+BC_x_e(10) = 7000
+BC_x_w(10) = 7000
+BC_y_n(10) = 800
+BC_y_s(10) = 700
+BC_TYPE(10) = 'P_OUTFLOW'
+BC_P_g(10) = 92326.695412
+
+
+BC_x_e(11) = 7000
+BC_x_w(11) = 7000
+BC_y_n(11) = 900
+BC_y_s(11) = 800
+BC_TYPE(11) = 'P_OUTFLOW'
+BC_P_g(11) = 91259.613746
+
+
+BC_x_e(12) = 7000
+BC_x_w(12) = 7000
+BC_y_n(12) = 1000
+BC_y_s(12) = 900
+BC_TYPE(12) = 'P_OUTFLOW'
+BC_P_g(12) = 90204.865061
+
+
+BC_x_e(13) = 7000
+BC_x_w(13) = 7000
+BC_y_n(13) = 1100
+BC_y_s(13) = 1000
+BC_TYPE(13) = 'P_OUTFLOW'
+BC_P_g(13) = 89162.306814
+
+
+BC_x_e(14) = 7000
+BC_x_w(14) = 7000
+BC_y_n(14) = 1200
+BC_y_s(14) = 1100
+BC_TYPE(14) = 'P_OUTFLOW'
+BC_P_g(14) = 88131.798114
+
+
+BC_x_e(15) = 7000
+BC_x_w(15) = 7000
+BC_y_n(15) = 1300
+BC_y_s(15) = 1200
+BC_TYPE(15) = 'P_OUTFLOW'
+BC_P_g(15) = 87113.199696
+
+
+BC_x_e(16) = 7000
+BC_x_w(16) = 7000
+BC_y_n(16) = 1400
+BC_y_s(16) = 1300
+BC_TYPE(16) = 'P_OUTFLOW'
+BC_P_g(16) = 86106.373904
+
+
+BC_x_e(17) = 7000
+BC_x_w(17) = 7000
+BC_y_n(17) = 1500
+BC_y_s(17) = 1400
+BC_TYPE(17) = 'P_OUTFLOW'
+BC_P_g(17) = 85111.184674
+
+
+BC_x_e(18) = 7000
+BC_x_w(18) = 7000
+BC_y_n(18) = 1600
+BC_y_s(18) = 1500
+BC_TYPE(18) = 'P_OUTFLOW'
+BC_P_g(18) = 84127.497515
+
+
+BC_x_e(19) = 7000
+BC_x_w(19) = 7000
+BC_y_n(19) = 1700
+BC_y_s(19) = 1600
+BC_TYPE(19) = 'P_OUTFLOW'
+BC_P_g(19) = 83155.179490
+
+
+BC_x_e(20) = 7000
+BC_x_w(20) = 7000
+BC_y_n(20) = 1800
+BC_y_s(20) = 1700
+BC_TYPE(20) = 'P_OUTFLOW'
+BC_P_g(20) = 82194.099197
+
+
+BC_x_e(21) = 7000
+BC_x_w(21) = 7000
+BC_y_n(21) = 1900
+BC_y_s(21) = 1800
+BC_TYPE(21) = 'P_OUTFLOW'
+BC_P_g(21) = 81244.126755
+
+
+BC_x_e(22) = 7000
+BC_x_w(22) = 7000
+BC_y_n(22) = 2000
+BC_y_s(22) = 1900
+BC_TYPE(22) = 'P_OUTFLOW'
+BC_P_g(22) = 80305.133783
+
+
+BC_x_e(23) = 7000
+BC_x_w(23) = 7000
+BC_y_n(23) = 2100
+BC_y_s(23) = 2000
+BC_TYPE(23) = 'P_OUTFLOW'
+BC_P_g(23) = 79376.993384
+
+
+BC_x_e(24) = 7000
+BC_x_w(24) = 7000
+BC_y_n(24) = 2200
+BC_y_s(24) = 2100
+BC_TYPE(24) = 'P_OUTFLOW'
+BC_P_g(24) = 78459.580128
+
+
+BC_x_e(25) = 7000
+BC_x_w(25) = 7000
+BC_y_n(25) = 2300
+BC_y_s(25) = 2200
+BC_TYPE(25) = 'P_OUTFLOW'
+BC_P_g(25) = 77552.770033
+
+
+BC_x_e(26) = 7000
+BC_x_w(26) = 7000
+BC_y_n(26) = 2400
+BC_y_s(26) = 2300
+BC_TYPE(26) = 'P_OUTFLOW'
+BC_P_g(26) = 76656.440551
+
+
+BC_x_e(27) = 7000
+BC_x_w(27) = 7000
+BC_y_n(27) = 2500
+BC_y_s(27) = 2400
+BC_TYPE(27) = 'P_OUTFLOW'
+BC_P_g(27) = 75770.470552
+
+
+BC_x_e(28) = 7000
+BC_x_w(28) = 7000
+BC_y_n(28) = 2600
+BC_y_s(28) = 2500
+BC_TYPE(28) = 'P_OUTFLOW'
+BC_P_g(28) = 74894.740303
+
+
+BC_x_e(29) = 7000
+BC_x_w(29) = 7000
+BC_y_n(29) = 2700
+BC_y_s(29) = 2600
+BC_TYPE(29) = 'P_OUTFLOW'
+BC_P_g(29) = 74029.131458
+
+
+BC_x_e(30) = 7000
+BC_x_w(30) = 7000
+BC_y_n(30) = 2800
+BC_y_s(30) = 2700
+BC_TYPE(30) = 'P_OUTFLOW'
+BC_P_g(30) = 73173.527035
+
+
+BC_x_e(31) = 7000
+BC_x_w(31) = 7000
+BC_y_n(31) = 2900
+BC_y_s(31) = 2800
+BC_TYPE(31) = 'P_OUTFLOW'
+BC_P_g(31) = 72327.811408
+
+
+BC_x_e(32) = 7000
+BC_x_w(32) = 7000
+BC_y_n(32) = 3000
+BC_y_s(32) = 2900
+BC_TYPE(32) = 'P_OUTFLOW'
+BC_P_g(32) = 71491.870285
+
+
+BC_x_e(33) = 7000
+BC_x_w(33) = 7000
+BC_y_n(33) = 3100
+BC_y_s(33) = 3000
+BC_TYPE(33) = 'P_OUTFLOW'
+BC_P_g(33) = 70665.590695
+
+
+BC_x_e(34) = 7000
+BC_x_w(34) = 7000
+BC_y_n(34) = 3200
+BC_y_s(34) = 3100
+BC_TYPE(34) = 'P_OUTFLOW'
+BC_P_g(34) = 69848.860973
+
+
+BC_x_e(35) = 7000
+BC_x_w(35) = 7000
+BC_y_n(35) = 3300
+BC_y_s(35) = 3200
+BC_TYPE(35) = 'P_OUTFLOW'
+BC_P_g(35) = 69041.570746
+
+
+BC_x_e(36) = 7000
+BC_x_w(36) = 7000
+BC_y_n(36) = 3400
+BC_y_s(36) = 3300
+BC_TYPE(36) = 'P_OUTFLOW'
+BC_P_g(36) = 68243.610915
+
+
+BC_x_e(37) = 7000
+BC_x_w(37) = 7000
+BC_y_n(37) = 3500
+BC_y_s(37) = 3400
+BC_TYPE(37) = 'P_OUTFLOW'
+BC_P_g(37) = 67454.873641
+
+
+BC_x_e(38) = 7000
+BC_x_w(38) = 7000
+BC_y_n(38) = 3600
+BC_y_s(38) = 3500
+BC_TYPE(38) = 'P_OUTFLOW'
+BC_P_g(38) = 66675.252335
+
+
+BC_x_e(39) = 7000
+BC_x_w(39) = 7000
+BC_y_n(39) = 3700
+BC_y_s(39) = 3600
+BC_TYPE(39) = 'P_OUTFLOW'
+BC_P_g(39) = 65904.641635
+
+
+BC_x_e(40) = 7000
+BC_x_w(40) = 7000
+BC_y_n(40) = 3800
+BC_y_s(40) = 3700
+BC_TYPE(40) = 'P_OUTFLOW'
+BC_P_g(40) = 65142.937402
+
+
+BC_x_e(41) = 7000
+BC_x_w(41) = 7000
+BC_y_n(41) = 3900
+BC_y_s(41) = 3800
+BC_TYPE(41) = 'P_OUTFLOW'
+BC_P_g(41) = 64390.036696
+
+
+BC_x_e(42) = 7000
+BC_x_w(42) = 7000
+BC_y_n(42) = 4000
+BC_y_s(42) = 3900
+BC_TYPE(42) = 'P_OUTFLOW'
+BC_P_g(42) = 63645.837769
+
+
+BC_x_e(43) = 7000
+BC_x_w(43) = 7000
+BC_y_n(43) = 4100
+BC_y_s(43) = 4000
+BC_TYPE(43) = 'P_OUTFLOW'
+BC_P_g(43) = 62910.240050
+
+
+BC_x_e(44) = 7000
+BC_x_w(44) = 7000
+BC_y_n(44) = 4200
+BC_y_s(44) = 4100
+BC_TYPE(44) = 'P_OUTFLOW'
+BC_P_g(44) = 62183.144128
+
+
+BC_x_e(45) = 7000
+BC_x_w(45) = 7000
+BC_y_n(45) = 4300
+BC_y_s(45) = 4200
+BC_TYPE(45) = 'P_OUTFLOW'
+BC_P_g(45) = 61464.451742
+
+
+BC_x_e(46) = 7000
+BC_x_w(46) = 7000
+BC_y_n(46) = 4400
+BC_y_s(46) = 4300
+BC_TYPE(46) = 'P_OUTFLOW'
+BC_P_g(46) = 60754.065767
+
+
+BC_x_e(47) = 7000
+BC_x_w(47) = 7000
+BC_y_n(47) = 4500
+BC_y_s(47) = 4400
+BC_TYPE(47) = 'P_OUTFLOW'
+BC_P_g(47) = 60051.890200
+
+
+BC_x_e(48) = 7000
+BC_x_w(48) = 7000
+BC_y_n(48) = 4600
+BC_y_s(48) = 4500
+BC_TYPE(48) = 'P_OUTFLOW'
+BC_P_g(48) = 59357.830148
+
+
+BC_x_e(49) = 7000
+BC_x_w(49) = 7000
+BC_y_n(49) = 4700
+BC_y_s(49) = 4600
+BC_TYPE(49) = 'P_OUTFLOW'
+BC_P_g(49) = 58671.791814
+
+
+BC_x_e(50) = 7000
+BC_x_w(50) = 7000
+BC_y_n(50) = 4800
+BC_y_s(50) = 4700
+BC_TYPE(50) = 'P_OUTFLOW'
+BC_P_g(50) = 57993.682487
+
+
+BC_x_e(51) = 7000
+BC_x_w(51) = 7000
+BC_y_n(51) = 4900
+BC_y_s(51) = 4800
+BC_TYPE(51) = 'P_OUTFLOW'
+BC_P_g(51) = 57323.410524
+
+
+BC_x_e(52) = 7000
+BC_x_w(52) = 7000
+BC_y_n(52) = 5000
+BC_y_s(52) = 4900
+BC_TYPE(52) = 'P_OUTFLOW'
+BC_P_g(52) = 56660.885346
+
+
+BC_x_e(53) = 7000
+BC_x_w(53) = 7000
+BC_y_n(53) = 5100
+BC_y_s(53) = 5000
+BC_TYPE(53) = 'P_OUTFLOW'
+BC_P_g(53) = 56006.017416
+
+
+BC_x_e(54) = 7000
+BC_x_w(54) = 7000
+BC_y_n(54) = 5200
+BC_y_s(54) = 5100
+BC_TYPE(54) = 'P_OUTFLOW'
+BC_P_g(54) = 55358.718234
+
+
+BC_x_e(55) = 7000
+BC_x_w(55) = 7000
+BC_y_n(55) = 5300
+BC_y_s(55) = 5200
+BC_TYPE(55) = 'P_OUTFLOW'
+BC_P_g(55) = 54718.900325
+
+
+BC_x_e(56) = 7000
+BC_x_w(56) = 7000
+BC_y_n(56) = 5400
+BC_y_s(56) = 5300
+BC_TYPE(56) = 'P_OUTFLOW'
+BC_P_g(56) = 54086.477221
+
+
+BC_x_e(57) = 7000
+BC_x_w(57) = 7000
+BC_y_n(57) = 5500
+BC_y_s(57) = 5400
+BC_TYPE(57) = 'P_OUTFLOW'
+BC_P_g(57) = 53461.363455
+
+
+BC_x_e(58) = 7000
+BC_x_w(58) = 7000
+BC_y_n(58) = 5600
+BC_y_s(58) = 5500
+BC_TYPE(58) = 'P_OUTFLOW'
+BC_P_g(58) = 52843.474550
+
+
+BC_x_e(59) = 7000
+BC_x_w(59) = 7000
+BC_y_n(59) = 5700
+BC_y_s(59) = 5600
+BC_TYPE(59) = 'P_OUTFLOW'
+BC_P_g(59) = 52232.727002
+
+
+BC_x_e(60) = 7000
+BC_x_w(60) = 7000
+BC_y_n(60) = 5800
+BC_y_s(60) = 5700
+BC_TYPE(60) = 'P_OUTFLOW'
+BC_P_g(60) = 51629.038274
+
+
+BC_x_e(61) = 7000
+BC_x_w(61) = 7000
+BC_y_n(61) = 5900
+BC_y_s(61) = 5800
+BC_TYPE(61) = 'P_OUTFLOW'
+BC_P_g(61) = 51032.326782
+
+
+BC_x_e(62) = 7000
+BC_x_w(62) = 7000
+BC_y_n(62) = 6000
+BC_y_s(62) = 5900
+BC_TYPE(62) = 'P_OUTFLOW'
+BC_P_g(62) = 50442.511886
+
+
+BC_x_e(63) = 7000
+BC_x_w(63) = 7000
+BC_y_n(63) = 6100
+BC_y_s(63) = 6000
+BC_TYPE(63) = 'P_OUTFLOW'
+BC_P_g(63) = 49859.513877
+
+
+BC_x_e(64) = 7000
+BC_x_w(64) = 7000
+BC_y_n(64) = 6200
+BC_y_s(64) = 6100
+BC_TYPE(64) = 'P_OUTFLOW'
+BC_P_g(64) = 49283.253967
+
+
+BC_x_e(65) = 7000
+BC_x_w(65) = 7000
+BC_y_n(65) = 6300
+BC_y_s(65) = 6200
+BC_TYPE(65) = 'P_OUTFLOW'
+BC_P_g(65) = 48713.654281
+
+
+BC_x_e(66) = 7000
+BC_x_w(66) = 7000
+BC_y_n(66) = 6400
+BC_y_s(66) = 6300
+BC_TYPE(66) = 'P_OUTFLOW'
+BC_P_g(66) = 48150.637841
+
+
+BC_x_e(67) = 7000
+BC_x_w(67) = 7000
+BC_y_n(67) = 6500
+BC_y_s(67) = 6400
+BC_TYPE(67) = 'P_OUTFLOW'
+BC_P_g(67) = 47594.128561
+
+
+BC_x_e(68) = 7000
+BC_x_w(68) = 7000
+BC_y_n(68) = 6600
+BC_y_s(68) = 6500
+BC_TYPE(68) = 'P_OUTFLOW'
+BC_P_g(68) = 47044.051232
+
+
+BC_x_e(69) = 7000
+BC_x_w(69) = 7000
+BC_y_n(69) = 6700
+BC_y_s(69) = 6600
+BC_TYPE(69) = 'P_OUTFLOW'
+BC_P_g(69) = 46500.331517
+
+
+BC_x_e(70) = 7000
+BC_x_w(70) = 7000
+BC_y_n(70) = 6800
+BC_y_s(70) = 6700
+BC_TYPE(70) = 'P_OUTFLOW'
+BC_P_g(70) = 45962.895936
+
+
+BC_x_e(71) = 7000
+BC_x_w(71) = 7000
+BC_y_n(71) = 6900
+BC_y_s(71) = 6800
+BC_TYPE(71) = 'P_OUTFLOW'
+BC_P_g(71) = 45431.671859
+
+
+BC_x_e(72) = 7000
+BC_x_w(72) = 7000
+BC_y_n(72) = 7000
+BC_y_s(72) = 6900
+BC_TYPE(72) = 'P_OUTFLOW'
+BC_P_g(72) = 44906.587495
+
+
+
 
   BC_ep_g       =    0.99
 
@@ -96,8 +667,6 @@
   BC_W_g        = 0.0
   BC_T_g(1)        = 1200.0
   BC_T_s(1,1)      = 1200.0
-
-  BC_P_g        = 101325.0 44906.587482293
 
   BC_ROP_s(1,1) = 24.0
   BC_U_s(1,1)   =  0.0 
@@ -111,7 +680,7 @@
          !  EP_g     P_g     U_g   U_s   ROP_s  T_g      X_g
          !           P_star  V_g   V_s          T_s      X_s       G
          !                   W_g   W_s           
-   SPX_DT = 0.1     0.1     0.1   0.1   0.1    0.1       0.1   0.1  0.1
+   SPX_DT = 0.5     0.5     0.5   0.5   0.5    0.5       0.5   0.5  0.5
 
    NLOG = 25
 
