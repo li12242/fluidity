@@ -1051,7 +1051,7 @@
                 if (remove_hydrostatic_balance) then
                    ! Here we subtract the hydrostatic component from the pressure boundary condition used in the surface integral when
                    ! assembling ct_m. Hopefully this will be the same as the pressure boundary condition itself.
-                   call addto(rhs, dim, u_nodes_bdy, -matmul(face_val(hb_pressure, sele)-ele_val(pressure_bc, sele), &
+                   call addto(rhs, dim, u_nodes_bdy, -matmul(ele_val(pressure_bc, sele)-face_val(hb_pressure, sele), &
                                                             ct_mat_bdy(dim,:,:) ))
                 else
                    call addto(rhs, dim, u_nodes_bdy, -matmul(ele_val(pressure_bc, sele), &
