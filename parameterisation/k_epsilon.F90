@@ -69,20 +69,20 @@ subroutine keps_advdif_diagnostics(state)
 
   type(state_type), intent(inout) :: state
   
-  call keps_damping_functions(state, advdif=.true.)
-  call keps_eddyvisc(state, advdif=.true.)
-  call keps_diffusion(state)
-  call keps_tracer_diffusion(state)
-  call keps_calculate_rhs(state)
+  call keps_damping_functions(state, advdif=.true.)  !! leave as is
+  call keps_eddyvisc(state, advdif=.true.)	     !! eddy viscosity
+  call keps_diffusion(state) 			     !! diff coeff
+  call keps_tracer_diffusion(state)		     !! 3rd equation. What is this?
+  call keps_calculate_rhs(state)		     !! source/sink terms on RHS of adv-diff eqs
 
 end subroutine keps_advdif_diagnostics
 
-subroutine keps_momentum_diagnostics(state)
+subroutine keps_momentum_diagnostics(state)	     !! Reynolds Stress Tensor?	
 
   type(state_type), intent(inout) :: state
   
-  call keps_damping_functions(state, advdif=.false.)
-  call keps_eddyvisc(state, advdif=.false.)
+  call keps_damping_functions(state, advdif=.false.) !! leave as is
+  call keps_eddyvisc(state, advdif=.false.)	     !! eddy viscosity
 
 end subroutine keps_momentum_diagnostics
 
@@ -102,7 +102,7 @@ subroutine keps_damping_functions(state, advdif)
   character(len=OPTION_PATH_LEN) :: option_path
 
   ewrite(1,*) 'in keps_damping_functions'
-
+!  ewrite(1,*) "Amin has a go" !Amin!
   option_path = trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/'
 
   f_1 => extract_scalar_field(state, "f_1")
@@ -266,6 +266,7 @@ subroutine keps_calculate_rhs(state)
   field_names(1) = 'TurbulentKineticEnergy'
   field_names(2) = 'TurbulentDissipation'
 
+  !! whats going on?
   field_loop: do i = 1, 2
      if (have_option(trim(option_path)//'scalar_field::'// &
           trim(field_names(i))//'/prescribed')) then
@@ -406,11 +407,12 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
   shape => ele_shape(k, ele)
   nodes = ele_nodes(k, ele)
 
+  !! transforms triangular elements into standard isocelles triangles !?
   call transform_to_physical( X, ele, shape, dshape=dshape, detwei=detwei )
 
   ! get bounded values of k and epsilon for source terms
   ! this doesn't change the field values of k and epsilon
-  k_ele = ele_val_at_quad(k,ele)
+  k_ele = ele_val_at_quad(k,ele) 	!! k value at quadrature point !?
   eps_ele = ele_val_at_quad(eps, ele)
   ngi = ele_ngi(u, ele)
   do gi = 1, ngi
@@ -418,10 +420,10 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
      eps_ele(gi) = max(eps_ele(gi), fields_min)
   end do
 
-  ! Compute Reynolds stress
+  ! Compute Reynolds stress !! Fluidity Manual 4.1.1.2
   grad_u = ele_grad_at_quad(u, ele, dshape)
   scalar_eddy_visc_ele = ele_val_at_quad(scalar_eddy_visc, ele)
-  dim = u%dim
+  dim = u%dim !! dimensions of u !?
   do gi = 1, ngi
      reynolds_stress(:,:,gi) = scalar_eddy_visc_ele(gi)*(grad_u(:,:,gi) + transpose(grad_u(:,:,gi)))
   end do
@@ -429,14 +431,14 @@ subroutine assemble_rhs_ele(src_abs_terms, k, eps, scalar_eddy_visc, u, density,
      reynolds_stress(i,i,:) = reynolds_stress(i,i,:) - (2./3.)*k_ele*ele_val_at_quad(density, ele)
   end do
 
-  ! Compute P
+  ! Compute P !! Production ?
   rhs = tensor_inner_product(reynolds_stress, grad_u)
   if (field_id==2) then
      rhs = rhs*c_eps_1*ele_val_at_quad(f_1,ele)*eps_ele/k_ele
   end if
-  rhs_addto(1,:) = shape_rhs(shape, detwei*rhs)
+  rhs_addto(1,:) = shape_rhs(shape, detwei*rhs) !! shape_rhs ?
 
-  ! A:
+  ! A: !! Absorption ?
   rhs = -1.0*eps_ele*ele_val_at_quad(density, ele)
   if (field_id==2) then
      rhs = rhs*c_eps_2*ele_val_at_quad(f_2,ele)*eps_ele/k_ele
@@ -558,7 +560,7 @@ subroutine keps_eddyvisc(state, advdif)
   ! Get model constant
   call get_option(trim(option_path)//'/C_mu', c_mu, default = 0.09)
   
-  ! Get field data
+  ! Get field data !!  from diamond
   call time_averaged_value(state, kk, "TurbulentKineticEnergy", advdif, option_path)
   call time_averaged_value(state, eps, "TurbulentDissipation", advdif, option_path)
   x  => extract_vector_field(state, "Coordinate")
@@ -573,7 +575,7 @@ subroutine keps_eddyvisc(state, advdif)
      have_visc = .false.
   end if
 
-  ewrite_minmax(kk)
+  ewrite_minmax(kk) !! what is ewrite !!???
   ewrite_minmax(eps)
   ewrite_minmax(scalar_eddy_visc)
   
@@ -607,7 +609,7 @@ subroutine keps_eddyvisc(state, advdif)
   
   ! Compute the length scale diagnostic field here.
   do i = 1, node_count(scalar_eddy_visc)
-     call set(ll, i, max(node_val(kk,i), fields_min)**1.5 / max(node_val(eps,i), fields_min))
+     call set(ll, i, max(node_val(kk,i), fields_min)**1.5 / max(node_val(eps,i), fields_min)) !! times C_mu ?
   end do
 
   ! Calculate scalar eddy viscosity by integration over element
@@ -739,7 +741,7 @@ subroutine keps_diffusion(state)
   call zero(diff)
   do i = 1, node_count(diff)
      do j = 1, diff%dim(1)
-        call addto(diff, j, j, i, node_val(bg_visc, j, j, i))
+        call addto(diff, j, j, i, node_val(bg_visc, j, j, i)) !! why j j i ?
         call addto(diff, j, j, i, node_val(eddy_visc, j, j, i) / sigma_k)
      end do
   end do
@@ -793,7 +795,7 @@ subroutine keps_tracer_diffusion(state)
            FLExit('you must have a diagnostic Diffusivity field with algorithm::Internal to be able to calculate diffusivity based upon the k-epsilon model')  
         end if
 
-        ! get sigma_p number
+        ! get sigma_p number !! what is this?
         call get_option(trim(state%option_path)//'/subgridscale_parameterisations/k-epsilon/sigma_p', sigma_p)
 
         ! allocate and zero required fields
@@ -908,7 +910,7 @@ subroutine keps_bcs(state)
      ! Loop over boundary conditions for field1
      boundary_conditions: do i=0, nbcs-1
 
-        bc_path_i=trim(bc_path)//"["//int2str(i)//"]"
+        bc_path_i=trim(bc_path)//"["//int2str(i)//"]" !! what does 'trim' do? Removes trailing blank characters of a string
 
         ! Get name and type of boundary condition
         call get_option(trim(bc_path_i)//"/name", bc_name)

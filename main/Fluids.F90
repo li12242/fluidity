@@ -83,6 +83,7 @@ module fluids_module
   use discrete_properties_module
   use gls
   use k_epsilon
+  use k_omega !Amin!
   use iceshelf_meltrate_surf_normal
   use halos
   use memory_diagnostics
@@ -179,7 +180,7 @@ contains
     ! Absolute first thing: check that the options, if present, are valid.
     call check_options
     ewrite(1,*) "Options sanity check successful"
-
+!    ewrite(1,*) "Amin has a go" !Amin!
     call get_option("/simulation_name",filename)
 
     call set_simulation_start_times()
@@ -633,6 +634,15 @@ contains
                    ewrite_minmax(sfield)
                 end if
                 call keps_advdif_diagnostics(state(i))
+             end if
+          end do
+
+          ! Do we have the k-omega turbulence model? !Amin!
+          do i= 1, size(state)
+             if(have_option("/material_phase["//&
+                  int2str(i-1)//"]/subgridscale_parameterisations/k-omega")) then
+                  ewrite(1,*) "Amin has a go at k-omega" !Amin!
+                call komega_advdif_diagnostics(state(i)) !!
              end if
           end do
 
