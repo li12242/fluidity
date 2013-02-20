@@ -3338,6 +3338,9 @@ contains
                call set(max_bed_shear_stress,i,node_val(bed_shear_stress,i))
             end if
          end do
+
+         call deallocate(magnitude_max_bss)
+         call deallocate(magnitude_bss)
       else
         call zero(max_bed_shear_stress)
       end if

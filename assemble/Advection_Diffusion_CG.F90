@@ -522,9 +522,10 @@ contains
       ewrite_minmax(density)
       olddensity=>extract_scalar_field(state, "Old"//trim(density_name))
       ewrite_minmax(olddensity)
-      
+
       if(have_option(trim(state%option_path)//'/equation_of_state/compressible') .and. &
-         & .not.have_option(trim(t%option_path)//'/prognostic/equation[0]/exclude_pressure_term')) then         
+         & .not.have_option(trim(t%option_path)//'/prognostic/equation[0]/exclude_pressure_term')) then   
+      
          call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", density_theta)
          compressible = .true.
          
@@ -879,10 +880,9 @@ contains
     if(equation_type==FIELD_EQUATION_INTERNALENERGY .and. compressible) then
        call add_pressurediv_element_cg(ele, test_function, t, velocity, pressure, nvfrac, du_t, detwei, rhs_addto)
     end if
-                                                                                  
 
     ! Step 4: Insertion
-            
+
     element_nodes => ele_nodes(t, ele)
     call addto(matrix, element_nodes, element_nodes, matrix_addto)
     call addto(rhs, element_nodes, rhs_addto)
@@ -1225,8 +1225,7 @@ contains
     diffusivity_gi = ele_val_at_quad(diffusivity, ele)
 
     if(isotropic_diffusivity) then
-      assert(size(diffusivity_gi, 1) > 0)    
-          
+      assert(size(diffusivity_gi, 1) > 0)
       if(multiphase .and. equation_type==FIELD_EQUATION_INTERNALENERGY) then
          ! This allows us to use the Diffusivity term as the heat flux term
          ! in the multiphase InternalEnergy equation: div( (k/Cv) * vfrac * grad(ie) ).
@@ -1242,7 +1241,7 @@ contains
     else
       diffusivity_mat = dshape_tensor_dshape(dt_t, diffusivity_gi, dt_t, detwei)
     end if
-    
+
     if(abs(dt_theta) > epsilon(0.0)) matrix_addto = matrix_addto + dt_theta * diffusivity_mat
     
     rhs_addto = rhs_addto - matmul(diffusivity_mat, ele_val(t, ele))
