@@ -180,6 +180,7 @@ contains
     ! k-omega momentum diagnostics (reynolds stress tensor) !Amin!
     if(have_option(trim(state(istate)%option_path)//&
          "/subgridscale_parameterisations/k-omega")) then
+                  ewrite(1,*) "Amin has another go at k-omega" !Amin!
        call komega_momentum_diagnostics(state(istate))
     end if
 
