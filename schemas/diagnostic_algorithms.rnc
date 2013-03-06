@@ -1288,6 +1288,17 @@ apparent_density_algorithm =
       }
    )
 
+bulk_density_algorithm = 
+   (
+      ## Diagnostic algorithm used in multiphase flow simulations.
+      ## Calculates the bulk density of the material_phase,
+      ## i.e. sum(density_i*vfrac_i).
+      element algorithm {
+         attribute name { "bulk_density" },
+         attribute material_phase_support { "multiple" }
+      }
+   )
+
 # Misc
 
 # l2norm diagnostic algorithm
@@ -1455,6 +1466,7 @@ scalar_diagnostic_algorithms |= scalar_edge_lengths_algorithm
 scalar_diagnostic_algorithms |= projection_scalar_potential_algorithm
 scalar_diagnostic_algorithms |= particle_reynolds_number_algorithm
 scalar_diagnostic_algorithms |= apparent_density_algorithm
+scalar_diagnostic_algorithms |= bulk_density_algorithm
 scalar_diagnostic_algorithms |= node_halo_diagnostic_algorithm
 scalar_diagnostic_algorithms |= lumped_mass_smoothed_scalar_algorithm
 scalar_diagnostic_algorithms |= l2norm_algorithm
