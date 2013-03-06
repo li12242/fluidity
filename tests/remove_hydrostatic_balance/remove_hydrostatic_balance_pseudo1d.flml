@@ -23,9 +23,12 @@
         <mesh name="CoordinateMesh"/>
         <mesh_shape>
           <polynomial_degree>
-            <integer_value rank="0">2</integer_value>
+            <integer_value rank="0">0</integer_value>
           </polynomial_degree>
         </mesh_shape>
+        <mesh_continuity>
+          <string_value>discontinuous</string_value>
+        </mesh_continuity>
         <stat>
           <exclude_from_stat/>
         </stat>
@@ -168,15 +171,13 @@
             <string_value lines="20" type="code" language="python">def val(X,t):
   from math import exp
   T0 = 288.15 # K
-  L = 0.0065 # K/m
+  R = 287.058 # Specific gas constant in J/Kg
   g = 9.8 # m/s**2
-  h = X[1]
-  T = T0 - L*h
+  h = X[1] # m
+  p0 = 101325.0
+  e = T0*718.0
   gamma = 1.4
-  Cv = 718.0
-  R_specific = Cv*(gamma-1.0)
-  e = T*Cv
-  p = 101325.0*(1.0 - ((L*h)/T0))**((g)/(R_specific*L))
+  p = p0*exp(-(g*h)/((gamma-1.0)*e))
   return p</string_value>
           </python>
         </initial_condition>
@@ -189,15 +190,13 @@
               <string_value lines="20" type="code" language="python">def val(X,t):
   from math import exp
   T0 = 288.15 # K
-  L = 0.0065 # K/m
+  R = 287.058 # Specific gas constant in J/Kg
   g = 9.8 # m/s**2
-  h = X[1]
-  T = T0 - L*h
+  h = X[1] # m
+  p0 = 101325.0
+  e = T0*718.0
   gamma = 1.4
-  Cv = 718.0
-  R_specific = Cv*(gamma-1.0)
-  e = T*Cv
-  p = 101325.0*(1.0 - ((L*h)/T0))**((g)/(R_specific*L))
+  p = p0*exp(-(g*h)/((gamma-1.0)*e))
   return p</string_value>
             </python>
           </type>
@@ -237,15 +236,13 @@
             <string_value lines="20" type="code" language="python">def val(X,t):
   from math import exp
   T0 = 288.15 # K
-  L = 0.0065 # K/m
+  R = 287.058 # Specific gas constant in J/Kg
   g = 9.8 # m/s**2
-  h = X[1]
-  T = T0 - L*h
+  h = X[1] # m
+  p0 = 101325.0
+  e = T0*718.0
   gamma = 1.4
-  Cv = 718.0
-  R_specific = Cv*(gamma-1.0)
-  e = T*Cv
-  p = 101325.0*(1.0 - ((L*h)/T0))**((g)/(R_specific*L))
+  p = p0*exp(-(g*h)/((gamma-1.0)*e))
   return p/((gamma-1.0)*e)</string_value>
           </python>
         </initial_condition>
@@ -258,15 +255,13 @@
               <string_value lines="20" type="code" language="python">def val(X,t):
   from math import exp
   T0 = 288.15 # K
-  L = 0.0065 # K/m
+  R = 287.058 # Specific gas constant in J/Kg
   g = 9.8 # m/s**2
-  h = X[1]
-  T = T0 - L*h
+  h = X[1] # m
+  p0 = 101325.0
+  e = T0*718.0
   gamma = 1.4
-  Cv = 718.0
-  R_specific = Cv*(gamma-1.0)
-  e = T*Cv
-  p = 101325.0*(1.0 - ((L*h)/T0))**((g)/(R_specific*L))
+  p = p0*exp(-(g*h)/((gamma-1.0)*e))
   return p/((gamma-1.0)*e)</string_value>
             </python>
           </type>
@@ -290,20 +285,17 @@
         <mesh name="VelocityMesh"/>
         <equation name="LinearMomentum"/>
         <spatial_discretisation>
-          <continuous_galerkin>
-            <stabilisation>
-              <no_stabilisation/>
-            </stabilisation>
-            <mass_terms>
-              <lump_mass_matrix>
-                <use_submesh/>
-              </lump_mass_matrix>
-            </mass_terms>
-            <advection_terms/>
-            <stress_terms>
-              <stress_form/>
-            </stress_terms>
-          </continuous_galerkin>
+          <discontinuous_galerkin>
+            <viscosity_scheme>
+              <compact_discontinuous_galerkin/>
+            </viscosity_scheme>
+            <advection_scheme>
+              <upwind/>
+              <integrate_advection_by_parts>
+                <twice/>
+              </integrate_advection_by_parts>
+            </advection_scheme>
+          </discontinuous_galerkin>
           <conservative_advection>
             <real_value rank="0">0.0</real_value>
           </conservative_advection>
@@ -389,11 +381,11 @@
         <tensor_field name="Viscosity" rank="2">
           <prescribed>
             <value name="WholeMesh">
-              <anisotropic_asymmetric>
+              <isotropic>
                 <constant>
-                  <real_value symmetric="false" dim2="dim" shape="2 2" dim1="dim" rank="2">1.85e-5 1.85e-5 1.85e-5 1.85e-5</real_value>
+                  <real_value rank="0">1.85e-5</real_value>
                 </constant>
-              </anisotropic_asymmetric>
+              </isotropic>
             </value>
             <output/>
           </prescribed>
@@ -426,6 +418,7 @@
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
           <density name="Density"/>
+          <exclude_pressure_term/>
         </equation>
         <spatial_discretisation>
           <control_volumes>
@@ -463,12 +456,8 @@
           <python>
             <string_value lines="20" type="code" language="python">def val(X,t):
   T0 = 288.15 # K
-  L = 0.0065 # K/m
-  h = X[1]
-  T = T0 - L*h
-  gamma = 1.4
   Cv = 718.0
-  e = T*Cv
+  e = T0*Cv
   return e</string_value>
           </python>
         </initial_condition>
@@ -511,15 +500,13 @@
             <string_value lines="20" type="code" language="python">def val(X,t):
   from math import exp
   T0 = 288.15 # K
-  L = 0.0065 # K/m
+  R = 287.058 # Specific gas constant in J/Kg
   g = 9.8 # m/s**2
-  h = X[1]
-  T = T0 - L*h
+  h = X[1] # m
+  p0 = 101325.0
+  e = T0*718.0
   gamma = 1.4
-  Cv = 718.0
-  R_specific = Cv*(gamma-1.0)
-  e = T*Cv
-  p = 101325.0*(1.0 - ((L*h)/T0))**((g)/(R_specific*L))
+  p = p0*exp(-(g*h)/((gamma-1.0)*e))
   return p</string_value>
           </python>
         </value>
@@ -538,15 +525,13 @@
             <string_value lines="20" type="code" language="python">def val(X,t):
   from math import exp
   T0 = 288.15 # K
-  L = 0.0065 # K/m
+  R = 287.058 # Specific gas constant in J/Kg
   g = 9.8 # m/s**2
-  h = X[1]
-  T = T0 - L*h
+  h = X[1] # m
+  p0 = 101325.0
+  e = T0*718.0
   gamma = 1.4
-  Cv = 718.0
-  R_specific = Cv*(gamma-1.0)
-  e = T*Cv
-  p = 101325.0*(1.0 - ((L*h)/T0))**((g)/(R_specific*L))
+  p = p0*exp(-(g*h)/((gamma-1.0)*e))
   return p/((gamma-1.0)*e)</string_value>
           </python>
         </value>

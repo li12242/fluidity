@@ -36,10 +36,10 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     
   <pass_tests>
     <test name="Gas::Velocity is always zero everywhere" language="python">
-assert(abs(gas_velocity_max).all() &lt; 1e-7)
+assert(max(gas_velocity_max) &lt; 1e-7)
     </test>    
     <test name="Gas::Pressure is always 101325 Pa everywhere" language="python">
-assert((abs(gas_pressure_max).all()) - 101325 &lt; 1.0e-7 and (abs(gas_pressure_min).all()) - 101325 &lt; 1.0e-7)
+assert(max(gas_pressure_max) - 101325 &lt; 1.0e-7 and min(gas_pressure_min) - 101325 &lt; 1.0e-7)
     </test>
     <test name="Solvers converged" language="python">
 assert(solvers_converged)

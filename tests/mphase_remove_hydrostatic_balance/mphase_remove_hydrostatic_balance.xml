@@ -15,13 +15,13 @@
     <variable name="gas_velocity_max" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_remove_hydrostatic_balance_1d.stat")
-gas_velocity_max = s["Gas"]["Velocity%1"]["max"]
+gas_velocity_max = s["Gas"]["Velocity%magnitude"]["max"]
     </variable>
 
-    <variable name="particle_velocity_max" language="python">
+    <variable name="particles_velocity_max" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_remove_hydrostatic_balance_1d.stat")
-particles_velocity_max = s["Particles"]["Velocity%1"]["max"]
+particles_velocity_max = s["Particles"]["Velocity%magnitude"]["max"]
     </variable>
   
     <variable name="solvers_converged" language="python">

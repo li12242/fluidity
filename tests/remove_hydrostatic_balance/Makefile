@@ -7,9 +7,9 @@ preprocess:
 
 run:
 	@echo **********Running 1D simulation
-	#../../bin/fluidity -v2 -l remove_hydrostatic_balance_1d.flml
+	../../bin/fluidity remove_hydrostatic_balance_1d.flml
 	@echo **********Running pseudo-1D simulation
-	../../bin/fluidity -v2 -l remove_hydrostatic_balance_pseudo1d.flml
+	../../bin/fluidity remove_hydrostatic_balance_pseudo1d.flml
 
 input: clean preprocess
 
