@@ -51,16 +51,16 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     
   <pass_tests>
     <test name="Gas::Velocity is always zero everywhere (P2-P1 simulation)" language="python">
-assert(max(gas_velocity_max_p2p1) &lt; 1e-7)
+assert(max(gas_velocity_max_p2p1) &lt; 1e-6)
     </test>    
     <test name="Gas::Pressure is always 101325 Pa everywhere (P2-P1 simulation)" language="python">
-assert(max(gas_pressure_max_p2p1) - 101325 &lt; 1.0e-7 and (abs(gas_pressure_min_p2p1).all()) - 101325 &lt; 1.0e-7)
+assert(max(gas_pressure_max_p2p1) - 101325 &lt; 1.0e-3 and min(gas_pressure_min_p2p1) - 101325 &lt; 1.0e-3)
     </test>
     <test name="Gas::Velocity is always zero everywhere (P0-P1 simulation)" language="python">
-assert(max(gas_velocity_max_p0p1) &lt; 1e-7)
+assert(max(gas_velocity_max_p0p1) &lt; 1e-6)
     </test>    
     <test name="Gas::Pressure is always 101325 Pa everywhere (P0-P1 simulation)" language="python">
-assert(max(gas_pressure_max_p0p1) - 101325 &lt; 1.0e-7 and max(gas_pressure_min_p0p1) - 101325 &lt; 1.0e-7)
+assert(max(gas_pressure_max_p0p1) - 101325 &lt; 1.0e-3 and min(gas_pressure_min_p0p1) - 101325 &lt; 1.0e-3)
     </test>
     <test name="Solvers converged" language="python">
 assert(solvers_converged)
