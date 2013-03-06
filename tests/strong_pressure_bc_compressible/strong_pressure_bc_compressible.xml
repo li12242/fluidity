@@ -15,7 +15,7 @@
     <variable name="gas_velocity_max" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("strong_pressure_bc_compressible.stat")
-gas_velocity_max = s["Gas"]["Velocity%1"]["max"]
+gas_velocity_max = s["Gas"]["Velocity%magnitude"]["max"]
     </variable>
     <variable name="gas_pressure_max" language="python">
 from fluidity_tools import stat_parser

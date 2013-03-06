@@ -15,7 +15,7 @@
     <variable name="gas_velocity_max_p2p1" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_strong_pressure_bc_compressible_p2p1.stat")
-gas_velocity_max_p2p1 = s["Gas"]["Velocity%1"]["max"]
+gas_velocity_max_p2p1 = s["Gas"]["Velocity%magnitude"]["max"]
     </variable>
     <variable name="gas_pressure_max_p2p1" language="python">
 from fluidity_tools import stat_parser
@@ -30,7 +30,7 @@ gas_pressure_min_p2p1 = s["Gas"]["Pressure"]["min"]
     <variable name="gas_velocity_max_p0p1" language="python">
 from fluidity_tools import stat_parser
 s = stat_parser("mphase_strong_pressure_bc_compressible_p0p1.stat")
-gas_velocity_max_p0p1 = s["Gas"]["Velocity%1"]["max"]
+gas_velocity_max_p0p1 = s["Gas"]["Velocity%magnitude"]["max"]
     </variable>
     <variable name="gas_pressure_max_p0p1" language="python">
 from fluidity_tools import stat_parser
@@ -51,16 +51,16 @@ solvers_converged = not "matrixdump" in files and not "matrixdump.info" in files
     
   <pass_tests>
     <test name="Gas::Velocity is always zero everywhere (P2-P1 simulation)" language="python">
-assert(abs(gas_velocity_max_p2p1).all() &lt; 1e-7)
+assert(max(gas_velocity_max_p2p1) &lt; 1e-7)
     </test>    
     <test name="Gas::Pressure is always 101325 Pa everywhere (P2-P1 simulation)" language="python">
-assert((abs(gas_pressure_max_p2p1).all()) - 101325 &lt; 1.0e-7 and (abs(gas_pressure_min_p2p1).all()) - 101325 &lt; 1.0e-7)
+assert(max(gas_pressure_max_p2p1) - 101325 &lt; 1.0e-7 and (abs(gas_pressure_min_p2p1).all()) - 101325 &lt; 1.0e-7)
     </test>
     <test name="Gas::Velocity is always zero everywhere (P0-P1 simulation)" language="python">
-assert(abs(gas_velocity_max_p0p1).all() &lt; 1e-7)
+assert(max(gas_velocity_max_p0p1) &lt; 1e-7)
     </test>    
     <test name="Gas::Pressure is always 101325 Pa everywhere (P0-P1 simulation)" language="python">
-assert((abs(gas_pressure_max_p0p1).all()) - 101325 &lt; 1.0e-7 and (abs(gas_pressure_min_p0p1).all()) - 101325 &lt; 1.0e-7)
+assert(max(gas_pressure_max_p0p1) - 101325 &lt; 1.0e-7 and max(gas_pressure_min_p0p1) - 101325 &lt; 1.0e-7)
     </test>
     <test name="Solvers converged" language="python">
 assert(solvers_converged)
