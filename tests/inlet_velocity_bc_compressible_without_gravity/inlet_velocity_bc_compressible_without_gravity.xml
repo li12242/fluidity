@@ -76,8 +76,8 @@ assert(abs(gas_velocity_max_1d - 300) &lt; 1 and abs(gas_velocity_min_1d - 300) 
 assert(abs(gas_velocity_max_pseudo1d - 300) &lt; 1 and abs(gas_velocity_min_pseudo1d - 300) &lt; 1)
     </test>
 
-    <test name="Gas::Density is 0.757877001 kg/m^3 everywhere in the 1D test case" language="python">
-assert(abs(gas_density_max_1d - 0.757877001) &lt; 1e-2 and abs(gas_density_min_1d - 0.757877001) &lt; 1e-2)
+    <test name="Gas::Density is 0.181985215 kg/m^3 everywhere in the 1D test case" language="python">
+assert(abs(gas_density_max_1d - 0.181985215) &lt; 1e-2 and abs(gas_density_min_1d - 0.181985215) &lt; 1e-2)
     </test>
 
     <test name="Gas::Density is 0.181985215 kg/m^3 everywhere in the pseudo-1D test case" language="python">
