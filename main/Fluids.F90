@@ -660,7 +660,7 @@ contains
                   '/prognostic/equation[0]/name', &
                   option_buffer, default="UnknownEquationType")
              select case(trim(option_buffer))
-             case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "HeatTransfer", "KEpsilon" )
+             case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "HeatTransfer", "KEpsilon", "CompressibleContinuity" )
                 use_advdif=.true.
              case default
                 use_advdif=.false.

@@ -2443,6 +2443,14 @@ Note: Only works for P1 discretisations.</a:documentation>
           <value>SedimentBedload</value>
         </attribute>
       </element>
+      <element name="equation">
+        <a:documentation>Equation type for the multiphase compressible flow model's continuity equation:
+
+d(rho_f)/dt + rho_f*\sum(div(vfrac_p*u_p)) + div(rho_f*vfrac_f*u_f).</a:documentation>
+        <attribute name="name">
+          <value>CompressibleContinuity</value>
+        </attribute>
+      </element>
     </choice>
   </define>
   <define name="equation_coefficients">
