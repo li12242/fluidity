@@ -925,24 +925,28 @@ contains
     ! Step 3: Assemble contributions
     
     ! Mass
-    if(have_mass .and. equation_type==FIELD_EQUATION_COMPRESSIBLECONTINUITY) then
-      call add_mass_element_compressiblecontinuity_cg(ele, test_function, t, detwei, matrix_addto, rhs_addto, vfrac_fluid)
-    else
-      call add_mass_element_cg(ele, test_function, t, density, olddensity, porosity_theta, nvfrac, detwei, detwei_old, detwei_new, matrix_addto, rhs_addto) 
+    if(have_mass) then
+       if(equation_type==FIELD_EQUATION_COMPRESSIBLECONTINUITY) then
+          call add_mass_element_compressiblecontinuity_cg(ele, test_function, t, detwei, matrix_addto, rhs_addto, vfrac_fluid)
+       else
+          call add_mass_element_cg(ele, test_function, t, density, olddensity, porosity_theta, nvfrac, detwei, detwei_old, detwei_new, matrix_addto, rhs_addto)
+       end if 
     end if
     
     ! Advection
-    if(have_advection .and. equation_type==FIELD_EQUATION_COMPRESSIBLECONTINUITY) then
-      call add_advection_element_compressiblecontinuity_cg(ele, test_function, t, &
-                                                           velocity, nvfrac, &
-                                                           dt_t, du_t, dnvfrac_t, detwei, j_mat, matrix_addto, rhs_addto, &
-                                                           velocity_fluid, velocity_particle, vfrac_fluid, vfrac_particle, &
-                                                           du_fluid_t, du_particle_t, dvfrac_fluid_t, dvfrac_particle_t)
-    else
-      call add_advection_element_cg(ele, test_function, t, &
-                                    velocity, grid_velocity, diffusivity, &
-                                    density, olddensity, nvfrac, &
-                                    dt_t, du_t, dug_t, drho_t, dnvfrac_t, detwei, j_mat, matrix_addto, rhs_addto)
+    if(have_advection) then
+       if(equation_type==FIELD_EQUATION_COMPRESSIBLECONTINUITY) then
+          call add_advection_element_compressiblecontinuity_cg(ele, test_function, t, &
+                                                               velocity, nvfrac, &
+                                                               dt_t, du_t, dnvfrac_t, detwei, j_mat, matrix_addto, rhs_addto, &
+                                                               velocity_fluid, velocity_particle, vfrac_fluid, vfrac_particle, &
+                                                               du_fluid_t, du_particle_t, dvfrac_fluid_t, dvfrac_particle_t)
+       else
+          call add_advection_element_cg(ele, test_function, t, &
+                                        velocity, grid_velocity, diffusivity, &
+                                        density, olddensity, nvfrac, &
+                                        dt_t, du_t, dug_t, drho_t, dnvfrac_t, detwei, j_mat, matrix_addto, rhs_addto)
+       end if
     end if    
   
     ! Absorption
