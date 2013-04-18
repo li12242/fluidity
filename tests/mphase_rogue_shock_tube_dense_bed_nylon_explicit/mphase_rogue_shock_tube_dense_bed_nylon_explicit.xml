@@ -20,7 +20,7 @@
      <!-- Note: this the the time after the incident shock wave hits the particle bed. -->
     <variable name="time" language="python">
 from fluidity_tools import stat_parser
-s = stat_parser("mphase_rogue_shock_tube_dense_bed_nylon.stat")
+s = stat_parser("mphase_rogue_shock_tube_dense_bed_nylon_explicit.stat")
 time=s["ElapsedTime"]["value"]
 
 for i in range(0, len(time)):
@@ -30,7 +30,7 @@ for i in range(0, len(time)):
     <variable name="positions" language="python">
 import vtktools
 
-file = vtktools.vtu('mphase_rogue_shock_tube_dense_bed_nylon_1.vtu')
+file = vtktools.vtu('mphase_rogue_shock_tube_dense_bed_nylon_explicit_1.vtu')
 file.GetFieldNames()
 p = file.GetLocations()
 positions = p[:,1]
@@ -66,7 +66,7 @@ import vtktools
 import numpy
 
 for i in range(1, len(time), 2):
-   filename='mphase_rogue_shock_tube_dense_bed_nylon_' + str(i) + '.vtu'
+   filename='mphase_rogue_shock_tube_dense_bed_nylon_explicit_' + str(i) + '.vtu'
    vt=vtktools.vtu(filename)
    
    if(time[i] &lt; -0.0005):
@@ -81,7 +81,7 @@ import vtktools
 import numpy
 
 for i in range(1, len(time), 2):
-   filename='mphase_rogue_shock_tube_dense_bed_nylon_' + str(i) + '.vtu'
+   filename='mphase_rogue_shock_tube_dense_bed_nylon_explicit_' + str(i) + '.vtu'
    vt=vtktools.vtu(filename)
    
    if(time[i] &gt; -0.0005 and time[i] &lt; 0.0001):
@@ -98,7 +98,7 @@ import vtktools
 import numpy
 
 for i in range(1, len(time), 10):
-   filename='mphase_rogue_shock_tube_dense_bed_nylon_' + str(i) + '.vtu'
+   filename='mphase_rogue_shock_tube_dense_bed_nylon_explicit_' + str(i) + '.vtu'
    vt=vtktools.vtu(filename)
    
    if(time[i] &gt; 0.0005 and time[i] &lt; 0.008):
