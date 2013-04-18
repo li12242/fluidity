@@ -2,10 +2,10 @@ preprocess:
 	@echo **********Creating 2D mesh
 	gmsh -2 -o mphase_rogue_shock_tube_dense_bed_nylon_explicit.msh src/mphase_rogue_shock_tube_dense_bed_nylon_explicit.geo
 	../../bin/gmsh2triangle --2d mphase_rogue_shock_tube_dense_bed_nylon_explicit.msh
-	../../bin/fldecomp -n 2 mphase_rogue_shock_tube_dense_bed_nylon_explicit
+
 run:
 	@echo **********Running simulation
-	mpiexec -n 2 ../../bin/fluidity mphase_rogue_shock_tube_dense_bed_nylon_explicit.flml
+	../../bin/fluidity mphase_rogue_shock_tube_dense_bed_nylon_explicit.flml
 
 input: clean preprocess
 
