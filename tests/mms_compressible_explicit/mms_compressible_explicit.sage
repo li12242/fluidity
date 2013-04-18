@@ -39,7 +39,8 @@ Sv = rho*u*diff(v,x) + rho*v*diff(v,y) - diff(tau_yy, y) - diff(tau_yx, x) - g_y
 
 Srho = diff(u*rho,x) + diff(v*rho,y)
 
-Sie = rho*u*diff(ie, x) + rho*v*diff(ie, y)# - diff(0.5*diff(ie,x), x) - diff(0.5*diff(ie,y), y)
+Sie = rho*u*diff(ie, x) + rho*v*diff(ie, y) + p*diff(u, x) + p*diff(v, y)
+# - diff(0.5*diff(ie,x), x) - diff(0.5*diff(ie,y), y)
 
 print 'from math import sin, cos, tanh, pi, sqrt'
 print ''
