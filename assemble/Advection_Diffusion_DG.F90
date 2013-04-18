@@ -1436,8 +1436,9 @@ contains
     real, dimension(ele_ngi(U_nl, ele)) :: u_nl_div_q
 
     real, dimension(ele_loc(U_nl, ele), ele_ngi(U_nl, ele), mesh_dim(T)) :: du_fluid_t, du_particle_t
-    real, dimension(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), mesh_dim(nvfrac)) :: dnvfrac_t, dvfrac_fluid_t, dvfrac_particle_t
-    real, dimension(ele_loc(density, ele), ele_ngi(density, ele), mesh_dim(density)) :: drho_t
+    real, dimension(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), mesh_dim(nvfrac)) :: dvfrac_fluid_t, dvfrac_particle_t
+    real, dimension(ele_loc(nvfrac, ele), ele_ngi(nvfrac, ele), mesh_dim(nvfrac)) :: dnvfrac_t
+    real, dimension(ele_loc(T, ele), ele_ngi(T, ele), mesh_dim(T)) :: drho_t
 
     real, dimension(ele_ngi(T, ele)) :: udotgradnvfrac_at_quad, udotgradrho_at_quad
 
@@ -1579,18 +1580,8 @@ contains
     if(equation_type==FIELD_EQUATION_COMPRESSIBLECONTINUITY) then
       call transform_to_physical(X, ele, ele_shape(velocity_fluid, ele), dshape = du_fluid_t)
       call transform_to_physical(X, ele, ele_shape(velocity_particle, ele), dshape = du_particle_t)
-
-      if(ele_shape(vfrac_fluid, ele) == t_shape) then
-         dvfrac_fluid_t = dt_t
-      else
-         call transform_to_physical(X, ele, ele_shape(vfrac_fluid, ele), dshape=dvfrac_fluid_t)
-      end if
-
-      if(ele_shape(vfrac_particle, ele) == t_shape) then
-         dvfrac_particle_t = dt_t
-      else
-         call transform_to_physical(X, ele, ele_shape(vfrac_particle, ele), dshape=dvfrac_particle_t)
-      end if
+      call transform_to_physical(X, ele, ele_shape(vfrac_fluid, ele), dshape=dvfrac_fluid_t)
+      call transform_to_physical(X, ele, ele_shape(vfrac_particle, ele), dshape=dvfrac_particle_t)
     end if
 
     if(equation_type==FIELD_EQUATION_INTERNALENERGY) then
@@ -1737,16 +1728,23 @@ contains
       if(equation_type==FIELD_EQUATION_COMPRESSIBLECONTINUITY) then
          if(integrate_by_parts_once) then
             ! 'Incompressible' ctp_m
+            ! Note that we don't actually integrate this by parts at all. Only the compressible ctp_m is integrated by parts.
             U_nl_q=ele_val_at_quad(velocity_particle,ele)
-            Advection_mat = - dshape_dot_vector_shape(dt_t, U_nl_q, t_shape, detwei*ele_val_at_quad(vfrac_particle, ele)) &
-                                 - dshape_dot_vector_shape(dt_t, U_nl_q, t_shape, detwei*ele_val_at_quad(vfrac_particle, ele))
-      
+            udotgradnvfrac_at_quad = sum(ele_grad_at_quad(vfrac_particle, ele, dvfrac_particle_t)*U_nl_q, 1)
+            Advection_mat = shape_shape(t_shape, t_shape, detwei*ele_val_at_quad(vfrac_particle, ele)*ele_div_at_quad(velocity_particle, ele, du_particle_t)) + shape_shape(t_shape, t_shape, detwei*udotgradnvfrac_at_quad)
             ! Compressible ctp_m
             U_nl_q=ele_val_at_quad(velocity_fluid,ele)
-            Advection_mat = Advection_mat - dshape_dot_vector_shape(dt_t, U_nl_q, t_shape, detwei*ele_val_at_quad(vfrac_fluid, ele))
+            Advection_mat = Advection_mat - shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(vfrac_fluid, ele))
 
          else
-            FLExit("Cannot yet integrate_by_parts_twice with the CompressibleContinuity equation type.")
+            ! 'Incompressible' ctp_m
+            U_nl_q=ele_val_at_quad(velocity_particle,ele)
+            udotgradnvfrac_at_quad = sum(ele_grad_at_quad(vfrac_particle, ele, dvfrac_particle_t)*U_nl_q, 1)
+            Advection_mat = shape_shape(t_shape, t_shape, detwei*ele_val_at_quad(vfrac_particle, ele)*ele_div_at_quad(velocity_particle, ele, du_particle_t)) + shape_shape(t_shape, t_shape, detwei*udotgradnvfrac_at_quad)
+            ! Compressible ctp_m
+            U_nl_q=ele_val_at_quad(velocity_fluid,ele)
+            udotgradnvfrac_at_quad = sum(ele_grad_at_quad(vfrac_fluid, ele, dvfrac_fluid_t)*U_nl_q, 1)
+            Advection_mat = Advection_mat + shape_shape(t_shape, t_shape, detwei*ele_val_at_quad(vfrac_fluid, ele)*ele_div_at_quad(velocity_fluid, ele, du_fluid_t)) + shape_shape(t_shape, t_shape, detwei*udotgradnvfrac_at_quad) + shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(vfrac_fluid, ele))
          end if
 
           ! Add stabilisation to the advection term if requested by the user.
@@ -1760,14 +1758,22 @@ contains
 
       else if(equation_type==FIELD_EQUATION_INTERNALENERGY) then
          if(multiphase) then    
-            udotgradnvfrac_at_quad = sum(ele_grad_at_quad(nvfrac, ele, dnvfrac_t)*U_nl_q, 1)
-            udotgradrho_at_quad = sum(ele_grad_at_quad(density, ele, drho_t)*U_nl_q, 1)
-            Advection_mat = -shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(density, ele)*ele_val_at_quad(nvfrac, ele)) &
-                            - shape_shape(t_shape, t_shape, detwei*ele_div_at_quad(U_nl, ele, du_t)*ele_val_at_quad(density, ele)*ele_val_at_quad(nvfrac, ele)) - shape_shape(t_shape, t_shape, detwei*udotgradrho_at_quad*ele_val_at_quad(nvfrac, ele)) - shape_shape(t_shape, t_shape, detwei*udotgradnvfrac_at_quad*ele_val_at_quad(density, ele))
+            
+            if(integrate_by_parts_once) then
+               udotgradnvfrac_at_quad = sum(ele_grad_at_quad(nvfrac, ele, dnvfrac_t)*U_nl_q, 1)
+               udotgradrho_at_quad = sum(ele_grad_at_quad(density, ele, drho_t)*U_nl_q, 1)
+               Advection_mat = -shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(density, ele)*ele_val_at_quad(nvfrac, ele)) - shape_shape(t_shape, t_shape, detwei*ele_div_at_quad(U_nl, ele, du_t)*ele_val_at_quad(density, ele)*ele_val_at_quad(nvfrac, ele)) - shape_shape(t_shape, t_shape, detwei*udotgradrho_at_quad*ele_val_at_quad(nvfrac, ele)) - shape_shape(t_shape, t_shape, detwei*udotgradnvfrac_at_quad*ele_val_at_quad(density, ele))
+            else
+               Advection_mat = shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(density, ele)*ele_val_at_quad(nvfrac, ele))
+            end if
          else
-            udotgradrho_at_quad = sum(ele_grad_at_quad(density, ele, drho_t)*U_nl_q, 1)
-            Advection_mat = -shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(density, ele)) &
-                            - shape_shape(t_shape, t_shape, detwei*ele_div_at_quad(U_nl, ele, du_t)*ele_val_at_quad(density, ele)) - shape_shape(t_shape, t_shape, detwei*udotgradrho_at_quad)
+            if(integrate_by_parts_once) then
+               udotgradrho_at_quad = sum(ele_grad_at_quad(density, ele, drho_t)*U_nl_q, 1)
+               Advection_mat = -shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(density, ele)) &
+                               - shape_shape(t_shape, t_shape, detwei*ele_div_at_quad(U_nl, ele, du_t)*ele_val_at_quad(density, ele)) - shape_shape(t_shape, t_shape, detwei*udotgradrho_at_quad)
+            else
+               Advection_mat = shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(density, ele))
+            end if
          end if
 
           ! Add stabilisation to the advection term if requested by the user.
@@ -2692,6 +2698,11 @@ contains
     real, dimension(face_ngi(T,face)) :: detwei
     real, dimension(face_ngi(T,face)) :: inner_advection_integral, outer_advection_integral
 
+    real, dimension(face_ngi(T, face)) :: vfrac_fluid_nl_q, vfrac_fluid_f_q, vfrac_fluid_f2_q
+    real, dimension(face_ngi(T, face)) :: vfrac_particle_nl_q, vfrac_particle_f_q, vfrac_particle_f2_q
+    real, dimension(face_ngi(T, face)) :: vfrac_nl_q, vfrac_f_q, vfrac_f2_q
+    real, dimension(face_ngi(T, face)) :: density_nl_q, density_f_q, density_f2_q
+
     ! Bilinear forms
     real, dimension(face_loc(T,face),face_loc(T,face)) :: nnAdvection_out
     real, dimension(face_loc(T,face),face_loc(T,face_2)) :: nnAdvection_in
@@ -2776,6 +2787,10 @@ contains
           u_f2_q = face_val_at_quad(velocity_fluid, face_2)
           U_nl_q=0.5*(u_f_q+u_f2_q)
 
+          vfrac_fluid_f_q = face_val_at_quad(vfrac_fluid, face)
+          vfrac_fluid_f2_q = face_val_at_quad(vfrac_fluid, face_2)
+          vfrac_fluid_nl_q = 0.5*(vfrac_fluid_f_q+vfrac_fluid_f2_q)
+
           if(p0_vel) then
             ! A surface integral around the inside of a constant
             ! velocity field will always produce zero so it's
@@ -2804,61 +2819,20 @@ contains
 
           ! first the integral around the inside of the element
           ! (this is the flux *out* of the element)
-          inner_advection_integral = (1.-income)*u_nl_q_dotn          
+          inner_advection_integral = (1.-income)*u_nl_q_dotn       
+          if(.not.integrate_by_parts_once) then
+             ! i.e. if we're integrating by parts twice
+             inner_advection_integral = inner_advection_integral &
+                                        - sum(u_f_q*normal,1)
+          end if   
           nnAdvection_out=shape_shape(T_shape, T_shape,  &
-               &                     inner_advection_integral * detwei * ele_val_at_quad(vfrac_fluid,ele)) 
+               &                     inner_advection_integral * detwei * vfrac_fluid_nl_q) 
           
           ! now the integral around the outside of the element
           ! (this is the flux *in* to the element)
           outer_advection_integral = income * u_nl_q_dotn
           nnAdvection_in=shape_shape(T_shape, T_shape_2, &
-               &                     outer_advection_integral * detwei * ele_val_at_quad(vfrac_fluid,ele))
-
-
-          ! Advecting velocity at quadrature points.
-          u_f_q = face_val_at_quad(velocity_particle, face)
-          u_f2_q = face_val_at_quad(velocity_particle, face_2)
-          U_nl_q=0.5*(u_f_q+u_f2_q)
-
-          if(p0_vel) then
-            ! A surface integral around the inside of a constant
-            ! velocity field will always produce zero so it's
-            ! not possible to evaluate the conservation term
-            ! with p0 that way.  Hence take the average across
-            ! a face.
-            div_u_f_q = U_nl_q
-          else
-            div_u_f_q = u_f_q
-          end if
-          
-          u_nl_q_dotn = sum(U_nl_q*normal,1)
-                 
-          ! Inflow is true if the flow at this gauss point is directed
-          ! into this element.
-          inflow = u_nl_q_dotn<0.0
-          income = merge(1.0,0.0,inflow)
-
-       
-          !----------------------------------------------------------------------
-          ! Construct bilinear forms.
-          !----------------------------------------------------------------------
-          
-          ! Calculate outflow boundary integral.
-          ! can anyone think of a way of optimising this more to avoid
-          ! superfluous operations (i.e. multiplying things by 0 or 1)?
-
-          ! first the integral around the inside of the element
-          ! (this is the flux *out* of the element)
-          inner_advection_integral = (1.-income)*u_nl_q_dotn          
-          nnAdvection_out=nnAdvection_out + shape_shape(T_shape, T_shape,  &
-               &                     inner_advection_integral * detwei * ele_val_at_quad(vfrac_particle,ele)) 
-          
-          ! now the integral around the outside of the element
-          ! (this is the flux *in* to the element)
-          outer_advection_integral = income * u_nl_q_dotn
-          nnAdvection_in=nnAdvection_in + shape_shape(T_shape, T_shape_2, &
-               &                     outer_advection_integral * detwei * ele_val_at_quad(vfrac_particle,ele))
-
+               &                     outer_advection_integral * detwei * vfrac_fluid_nl_q)
 
        else if(equation_type==FIELD_EQUATION_INTERNALENERGY) then
 
@@ -2866,6 +2840,16 @@ contains
           u_f_q = face_val_at_quad(U_nl, face)
           u_f2_q = face_val_at_quad(U_nl, face_2)
           U_nl_q=0.5*(u_f_q+u_f2_q)
+
+          if(multiphase) then 
+             vfrac_f_q = face_val_at_quad(nvfrac, face)
+             vfrac_f2_q = face_val_at_quad(nvfrac, face_2)
+             vfrac_nl_q = 0.5*(vfrac_f_q+vfrac_f2_q)
+          end if
+
+          density_f_q = face_val_at_quad(density, face)
+          density_f2_q = face_val_at_quad(density, face_2)
+          density_nl_q = 0.5*(density_f_q+density_f2_q)
 
           if(p0_vel) then
             ! A surface integral around the inside of a constant
@@ -2896,12 +2880,17 @@ contains
           ! first the integral around the inside of the element
           ! (this is the flux *out* of the element)
           inner_advection_integral = (1.-income)*u_nl_q_dotn
+          if(.not.integrate_by_parts_once) then
+             ! i.e. if we're integrating by parts twice
+             inner_advection_integral = inner_advection_integral &
+                                        - sum(u_f_q*normal,1)
+          end if
           if(multiphase) then        
             nnAdvection_out=shape_shape(T_shape, T_shape,  &
-               &                     inner_advection_integral * detwei * ele_val_at_quad(nvfrac,ele) * ele_val_at_quad(density,ele)) 
+               &                     inner_advection_integral * detwei * vfrac_nl_q * density_nl_q)
           else
             nnAdvection_out=shape_shape(T_shape, T_shape,  &
-               &                     inner_advection_integral * detwei * ele_val_at_quad(density,ele)) 
+               &                     inner_advection_integral * detwei * density_nl_q) 
           end if
           
           ! now the integral around the outside of the element
@@ -2909,10 +2898,10 @@ contains
           outer_advection_integral = income * u_nl_q_dotn
           if(multiphase) then
             nnAdvection_in=shape_shape(T_shape, T_shape_2, &
-               &                     outer_advection_integral * detwei * ele_val_at_quad(nvfrac,ele) * ele_val_at_quad(density,ele))
+               &                     outer_advection_integral * detwei * vfrac_nl_q * density_nl_q)
           else
             nnAdvection_in=shape_shape(T_shape, T_shape_2, &
-               &                     outer_advection_integral * detwei * ele_val_at_quad(density,ele))
+               &                     outer_advection_integral * detwei * density_nl_q)
           end if
 
 
