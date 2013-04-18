@@ -38,7 +38,10 @@ for i, mesh in enumerate(meshes):
 
     ratio_x = a_error_x / b_error_x
     ratio_y = a_error_y / b_error_y
-
+    print "a_error_x: %f" % a_error_x
+    print "a_error_y: %f" % a_error_y
+    print "b_error_x: %f" % b_error_x
+    print "b_error_y: %f" % b_error_y
     print mesh[0] + '->' + mesh[1] + ': ', [log(ratio_x, 2), log(ratio_y, 2)]
 
     convergence[0] = min(log(ratio_x, 2), log(ratio_y, 2), convergence[0])
@@ -61,7 +64,8 @@ for i, field in enumerate(fields):
         b_error = stat("MMS_"+str(mesh[1])+".stat")["Fluid"][field]["l2norm"][-1]
         
         ratio = a_error / b_error
-        
+        print "a_error: %f" % a_error
+        print "b_error: %f" % b_error
         print mesh[0] + '->' + mesh[1] + ': ', log(ratio, 2)
 
         convergence[i+1] = min(log(ratio, 2), convergence[i+1])

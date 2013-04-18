@@ -31,7 +31,7 @@ def get_cloud_front(path_prefix, n_files, resolution, threshold):
    for i in range(0, n_files, 20):
       # Open the VTU files one by one
       try:
-         file = vtktools.vtu(path + '/mphase_rogue_shock_tube_dense_bed_nylon_' + str(i) + '.pvtu')  
+         file = vtktools.vtu(path + '/mphase_rogue_shock_tube_dense_bed_nylon_explicit_' + str(i) + '.pvtu')  
       except:
          print "WARNING: Could not open VTU file!"
          front_position[i] = 0

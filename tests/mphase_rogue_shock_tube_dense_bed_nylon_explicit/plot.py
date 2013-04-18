@@ -93,4 +93,4 @@ pylab.ylabel("Pressure at gauge (Pa)")
 pylab.grid("on")
 
 #pylab.show()
-pylab.savefig('mphase_rogue_shock_tube_dense_bed_nylon.png')
+pylab.savefig('mphase_rogue_shock_tube_dense_bed_nylon_explicit.png')
