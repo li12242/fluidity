@@ -116,6 +116,7 @@ module advection_diffusion_DG
   integer :: equation_type
 
   logical :: multiphase, compressible
+  logical :: include_pressure_div_term ! For InternalEnergy equation
 
   ! Include porosity?
   logical :: include_porosity
@@ -1018,20 +1019,25 @@ contains
       olddensity=>extract_scalar_field(state, "Old"//trim(density_name))
       ewrite_minmax(olddensity)
 
-      if(have_option(trim(state%option_path)//'/equation_of_state/compressible') .and. &
-         & .not.have_option(trim(t%option_path)//'/prognostic/equation[0]/exclude_pressure_term')) then   
+      if(have_option(trim(state%option_path)//'/equation_of_state/compressible')) then   
       
          call get_option(trim(density%option_path)//"/prognostic/temporal_discretisation/theta", density_theta)
          compressible = .true.
-         
-         ! We always include the p*div(u) term if this is the compressible phase.
-         pressure=>extract_scalar_field(state, "Pressure")
-         ewrite_minmax(pressure)
+
+         if(.not.have_option(trim(t%option_path)//'/prognostic/equation[0]/exclude_pressure_term')) then
+            ! We always include the p*div(u) term if this is the compressible phase.
+            include_pressure_div_term = .true.
+            pressure=>extract_scalar_field(state, "Pressure")
+            ewrite_minmax(pressure)
+         else
+            include_pressure_div_term = .false.
+         end if
       else
          ! Since the particle phase is always incompressible then its Density
          ! will not be prognostic. Just use a fixed theta value of 1.0.
          density_theta = 1.0
          compressible = .false.
+         include_pressure_div_term = .false.
          
          ! Don't include the p*div(u) term if this is the incompressible particle phase.
          pressure => dummydensity
@@ -1941,6 +1947,16 @@ contains
     if (.not. add_src_directly_to_rhs) then
        l_T_rhs=l_T_rhs &
               + shape_rhs(T_shape, detwei*ele_val_at_quad(Source, ele))
+    end if
+
+    if(equation_type==FIELD_EQUATION_INTERNALENERGY) then
+      if(include_pressure_div_term) then
+         if(multiphase) then
+            l_T_rhs=l_T_rhs - shape_rhs(T_shape, detwei*ele_val_at_quad(pressure, ele)*ele_div_at_quad(U_nl, ele, du_t)*ele_val_at_quad(nvfrac, ele))
+         else
+            l_T_rhs=l_T_rhs - shape_rhs(T_shape, detwei*ele_val_at_quad(pressure, ele)*ele_div_at_quad(U_nl, ele, du_t))
+         end if
+      end if
     end if
         
     if(move_mesh) then

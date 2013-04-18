@@ -31,7 +31,7 @@ csq = 100.0
 p = (gamma-1.0)*ie1*rho1
 #p = csq*(rho1 - rho0)
 
-vfrac2 = 0.2 #cos((x**2)*3*y)/2.0 - 0.1 # Always prescribe the Particle phase's PhaseVolumeFraction.
+vfrac2 = cos((x**2)*3*y)/2.0 - 0.1 # Always prescribe the Particle phase's PhaseVolumeFraction.
 vfrac1 = 1.0 - vfrac2 # The diagnostic PhaseVolumeFraction field is always in the Fluid phase.
             
 mu1 = 0.7
