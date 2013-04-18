@@ -1223,9 +1223,7 @@ contains
     call deallocate(porosity_theta)
 
     call deallocate(dummydensity)
-    if(multiphase) then
-       call deallocate(nvfrac)
-    end if
+    call deallocate(nvfrac)
     if(equation_type==FIELD_EQUATION_COMPRESSIBLECONTINUITY) then
        call deallocate(vfrac_fluid)
        call deallocate(vfrac_particle)
@@ -1595,11 +1593,14 @@ contains
       end if
     end if
 
-    if(multiphase .and. equation_type==FIELD_EQUATION_INTERNALENERGY) then
-      if(ele_shape(nvfrac, ele) == t_shape) then
-         dnvfrac_t = dt_t
-      else
-         call transform_to_physical(X, ele, ele_shape(nvfrac, ele), dshape=dnvfrac_t)
+    if(equation_type==FIELD_EQUATION_INTERNALENERGY) then
+      
+      if(multiphase) then
+         if(ele_shape(nvfrac, ele) == t_shape) then
+            dnvfrac_t = dt_t
+         else
+            call transform_to_physical(X, ele, ele_shape(nvfrac, ele), dshape=dnvfrac_t)
+         end if
       end if
 
       if(ele_shape(density, ele) == t_shape) then
@@ -1762,7 +1763,11 @@ contains
             udotgradnvfrac_at_quad = sum(ele_grad_at_quad(nvfrac, ele, dnvfrac_t)*U_nl_q, 1)
             udotgradrho_at_quad = sum(ele_grad_at_quad(density, ele, drho_t)*U_nl_q, 1)
             Advection_mat = -shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(density, ele)*ele_val_at_quad(nvfrac, ele)) &
-                            - shape_shape(t_shape, t_shape, detwei*ele_div_at_quad(U_nl, ele, du_t)*ele_val_at_quad(density, ele)*ele_val_at_quad(nvfrac, ele)) - shape_shape(t_shape, t_shape, detwei*udotgradrho_at_quad*ele_val_at_quad(nvfrac, ele)) - shape_shape(t_shape, t_shape, detwei*udotgradnvfrac_at_quad*ele_val_at_quad(density, ele)) 
+                            - shape_shape(t_shape, t_shape, detwei*ele_div_at_quad(U_nl, ele, du_t)*ele_val_at_quad(density, ele)*ele_val_at_quad(nvfrac, ele)) - shape_shape(t_shape, t_shape, detwei*udotgradrho_at_quad*ele_val_at_quad(nvfrac, ele)) - shape_shape(t_shape, t_shape, detwei*udotgradnvfrac_at_quad*ele_val_at_quad(density, ele))
+         else
+            udotgradrho_at_quad = sum(ele_grad_at_quad(density, ele, drho_t)*U_nl_q, 1)
+            Advection_mat = -shape_vector_dot_dshape(t_shape, U_nl_q, dt_t, detwei*ele_val_at_quad(density, ele)) &
+                            - shape_shape(t_shape, t_shape, detwei*ele_div_at_quad(U_nl, ele, du_t)*ele_val_at_quad(density, ele)) - shape_shape(t_shape, t_shape, detwei*udotgradrho_at_quad)
          end if
 
           ! Add stabilisation to the advection term if requested by the user.
@@ -2890,16 +2895,25 @@ contains
 
           ! first the integral around the inside of the element
           ! (this is the flux *out* of the element)
-          inner_advection_integral = (1.-income)*u_nl_q_dotn          
-          nnAdvection_out=shape_shape(T_shape, T_shape,  &
+          inner_advection_integral = (1.-income)*u_nl_q_dotn
+          if(multiphase) then        
+            nnAdvection_out=shape_shape(T_shape, T_shape,  &
                &                     inner_advection_integral * detwei * ele_val_at_quad(nvfrac,ele) * ele_val_at_quad(density,ele)) 
+          else
+            nnAdvection_out=shape_shape(T_shape, T_shape,  &
+               &                     inner_advection_integral * detwei * ele_val_at_quad(density,ele)) 
+          end if
           
           ! now the integral around the outside of the element
           ! (this is the flux *in* to the element)
           outer_advection_integral = income * u_nl_q_dotn
-          nnAdvection_in=shape_shape(T_shape, T_shape_2, &
+          if(multiphase) then
+            nnAdvection_in=shape_shape(T_shape, T_shape_2, &
                &                     outer_advection_integral * detwei * ele_val_at_quad(nvfrac,ele) * ele_val_at_quad(density,ele))
-
+          else
+            nnAdvection_in=shape_shape(T_shape, T_shape_2, &
+               &                     outer_advection_integral * detwei * ele_val_at_quad(density,ele))
+          end if
 
 
        else

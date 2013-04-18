@@ -1980,6 +1980,12 @@ scalar_equation_choice =
          ## Note: Only works for P1 discretisations.
          element equation {
             attribute name { "SedimentBedload" }
+         }|
+         ## Equation type for the multiphase compressible flow model's continuity equation:
+         ##
+         ## d(rho_f)/dt + rho_f*\sum(div(vfrac_p*u_p)) + div(rho_f*vfrac_f*u_f).
+         element equation {
+            attribute name { "CompressibleContinuity" }
          }
       )
    )

@@ -107,7 +107,8 @@ module field_options
                                 FIELD_EQUATION_INTERNALENERGY            = 4, &
                                 FIELD_EQUATION_HEATTRANSFER              = 5, &
                                 FIELD_EQUATION_ELECTRICALPOTENTIAL       = 6, &
-                                FIELD_EQUATION_KEPSILON       = 7
+                                FIELD_EQUATION_KEPSILON                  = 7, &
+                                FIELD_EQUATION_COMPRESSIBLECONTINUITY    = 8
 
 contains
 

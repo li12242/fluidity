@@ -322,7 +322,7 @@ module divergence_matrix_cg
               &                          normal=normal_bdy) 
 
           if(multiphase) then
-            ele_mat_bdy = shape_shape_vector(test_shape, field_shape, detwei_bdy*face_val_at_quad(nvfrac, ele), normal_bdy)
+            ele_mat_bdy = shape_shape_vector(test_shape, field_shape, detwei_bdy*face_val_at_quad(nvfrac, sele), normal_bdy)
           else
             ele_mat_bdy = shape_shape_vector(test_shape, field_shape, detwei_bdy, normal_bdy)
           end if

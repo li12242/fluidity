@@ -370,6 +370,7 @@
                ! Get the necessary fields to calculate the drag force
                velocity_fluid => extract_vector_field(state(istate_fluid), "Velocity")
                velocity_particle => extract_vector_field(state(istate_particle), "Velocity")
+
                if(.not.aliased(velocity_particle)) then ! Don't count the aliased material_phases
                   
                   vfrac_fluid => extract_scalar_field(state(istate_fluid), "PhaseVolumeFraction")
