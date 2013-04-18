@@ -683,7 +683,7 @@ contains
 
                    ! Solve the DG form of the equations.
                    call solve_advection_diffusion_dg(field_name=field_name_list(it), &
-                        & state=state(field_state_list(it)))
+                        & states=state, istate=field_state_list(it))
 
                 ELSEIF(have_option(trim(field_optionpath_list(it))//&
                      & "/prognostic/spatial_discretisation/finite_volume")) then
