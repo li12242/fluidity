@@ -76,7 +76,7 @@ for i in range(1, len(time), 2):
       break
     </test>
 
-    <test name="Pressure is between 100,000 Pa and 183,000 Pa at the upstream pressure guage for t in [-0.0005, 0.0001]" language="python">
+    <test name="Pressure is between 90,000 Pa and 195,000 Pa at the upstream pressure guage for t in [-0.0005, 0.0001]" language="python">
 import vtktools
 import numpy
 
@@ -86,14 +86,14 @@ for i in range(1, len(time), 2):
    
    if(time[i] &gt; -0.0005 and time[i] &lt; 0.0001):
       probedpressure_upstream = vtktools.vtu.ProbeData(vt, numpy.array([[0.0125, 1.35 - 0.11, 0]]), 'Gas::Pressure')
-      assert abs(probedpressure_upstream) &lt; 190000
-      assert abs(probedpressure_upstream) &gt; 100000
+      assert abs(probedpressure_upstream) &lt; 195000
+      assert abs(probedpressure_upstream) &gt; 90000
    else:
       if(time[i] &gt; 0.0001):
          break
     </test>
 
-    <test name="Pressure is between 300,000 Pa and 123,000 Pa at the upstream pressure guage for t in [0.0005, 0.008]" language="python">
+    <test name="Pressure is between 310,000 Pa and 123,000 Pa at the upstream pressure guage for t in [0.0005, 0.008]" language="python">
 import vtktools
 import numpy
 
@@ -103,7 +103,7 @@ for i in range(1, len(time), 10):
    
    if(time[i] &gt; 0.0005 and time[i] &lt; 0.008):
       probedpressure_upstream = vtktools.vtu.ProbeData(vt, numpy.array([[0.0125, 1.35 - 0.11, 0]]), 'Gas::Pressure')
-      assert abs(probedpressure_upstream) &lt; 300000
+      assert abs(probedpressure_upstream) &lt; 310000
       assert abs(probedpressure_upstream) &gt; 123000
     </test>
     
