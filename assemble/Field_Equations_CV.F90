@@ -247,7 +247,7 @@ contains
       call zero(dummytensor)
       dummytensor%option_path = " "
       
-      ! Allocate a dummy density field set to 1.0 in case we are using KEpsilon, 
+      ! Allocate a dummy density field set to 1.0 in case we are using KEpsilon or KOmega, 
       ! but have a Boussinesq or Drainage equation_type for Velocity.
       allocate(dummydensity)
       call allocate(dummydensity, tfield%mesh, name="DummyDensity", field_type=FIELD_TYPE_CONSTANT)
@@ -265,6 +265,30 @@ contains
         oldtdensity=>dummyscalar
 
       case(FIELD_EQUATION_KEPSILON)
+        ! Depending on the equation type, extract the density or set it to some dummy field allocated above
+        temp_velocity_ptr => extract_vector_field(state(1), "Velocity")
+        call get_option(trim(temp_velocity_ptr%option_path)//"/prognostic/equation[0]/name", velocity_equation_type)
+        select case(velocity_equation_type)
+           case("LinearMomentum")
+              include_density = .true.
+              tdensity=>extract_scalar_field(state(1), "Density")
+              oldtdensity=>extract_scalar_field(state(1), "OldDensity")
+
+              if(have_option(trim(tdensity%option_path)//"/prognostic")) then
+                 prognostic_density = .true.
+              end if
+           case("Boussinesq")
+              tdensity => dummydensity
+              oldtdensity => dummydensity
+           case("Drainage")
+              tdensity => dummydensity
+              oldtdensity => dummydensity
+           case default
+              ! developer error... out of sync options input and code
+              FLAbort("Unknown equation type for velocity")
+        end select
+
+      case(FIELD_EQUATION_KOMEGA) !Amin! 
         ! Depending on the equation type, extract the density or set it to some dummy field allocated above
         temp_velocity_ptr => extract_vector_field(state(1), "Velocity")
         call get_option(trim(temp_velocity_ptr%option_path)//"/prognostic/equation[0]/name", velocity_equation_type)
@@ -1219,6 +1243,51 @@ contains
         end if
 
       case (FIELD_EQUATION_KEPSILON)
+
+        ! [\rho^{n+1}M + dt*A_m + dt*theta*D_m](T^{n+1}-T^{n})/dt = rhs - [A_m + D_m]*T^{n} - diff_rhs
+
+        ! construct M
+        if(explicit) then
+          if(include_mass) then
+            call scale(m_cvmass, tdensity)
+          end if
+        else
+          if(include_mass) then
+            call mult_diag(M, tdensity)
+          end if
+          if(include_advection) call addto(M, A_m, dt)
+          if(include_absorption) call addto_diag(M, massabsorption, theta*dt)
+        
+          if(include_advection) then
+            call mult(MT_old, A_m, oldtfield)
+            call addto(rhs, MT_old, -1.0)
+          end if
+        end if
+
+        if(include_source .and. (.not. add_src_directly_to_rhs)) call addto(rhs, masssource)
+
+        if(include_absorption) then
+          ! massabsorption has already been added to the matrix so it can now be scaled
+          ! by the old field value to add it to the rhs
+          call scale(massabsorption, oldtfield)
+          call addto(rhs, massabsorption, -1.0)
+        end if
+
+        if(include_diffusion) then
+          call mult(MT_old, D_m, oldtfield)
+          call addto(rhs, MT_old, -1.0)
+          call addto(rhs, diff_rhs, -1.0)
+
+          if(.not.explicit) then
+            call addto(M, D_m, theta*dt)
+          end if
+        end if
+        
+        if(move_mesh) then
+          FLExit("Moving mesh with this equation type not yet supported.")
+        end if
+
+      case (FIELD_EQUATION_KOMEGA) !Amin!
 
         ! [\rho^{n+1}M + dt*A_m + dt*theta*D_m](T^{n+1}-T^{n})/dt = rhs - [A_m + D_m]*T^{n} - diff_rhs
 

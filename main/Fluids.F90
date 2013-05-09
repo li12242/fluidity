@@ -162,7 +162,7 @@ contains
     LOGICAL :: have_solids
 
     ! An array of submaterials of the current phase in state(istate).
-    ! Needed for k-epsilon VelocityBuoyancyDensity calculation line:~630
+    ! Needed for k-epsilon VelocityBuoyancyDensity calculation line:~630 !Amin! edit?
     ! S Parkinson 31-08-12
     type(state_type), dimension(:), pointer :: submaterials     
 
@@ -638,11 +638,26 @@ contains
           end do
 
           ! Do we have the k-omega turbulence model? !Amin!
+          ! If we do then we want to calculate source terms and diffusivity for the k and omega 
+          ! fields and also tracer field diffusivities at n + theta_nl
           do i= 1, size(state)
              if(have_option("/material_phase["//&
-                  int2str(i-1)//"]/subgridscale_parameterisations/k-omega")) then
-                  ewrite(1,*) "Amin has a go at k-omega" !Amin!
-                call komega_advdif_diagnostics(state(i)) !!
+                  int2str(i-1)//"]/subgridscale_parameterisations/k-omega")) then !Amin!
+                if(timestep == 1 .and. its == 1 .and. have_option('/physical_parameters/gravity')) then
+                   ! The very first time k-omega is called, VelocityBuoyancyDensity
+                   ! is set to zero until calculate_densities is called in the momentum equation
+                   ! solve. Calling calculate_densities here is a work-around for this problem.  
+                   sfield => extract_scalar_field(state, 'VelocityBuoyancyDensity')
+                   if(option_count("/material_phase/vector_field::Velocity/prognostic") > 1) then 
+                      call get_phase_submaterials(state, i, submaterials)
+                      call calculate_densities(submaterials, buoyancy_density=sfield)
+                      deallocate(submaterials)
+                   else
+                      call calculate_densities(state, buoyancy_density=sfield)
+                   end if
+                   ewrite_minmax(sfield)
+                end if
+                call komega_advdif_diagnostics(state(i)) !Amin!
              end if
           end do
 
@@ -670,7 +685,7 @@ contains
                   '/prognostic/equation[0]/name', &
                   option_buffer, default="UnknownEquationType")
              select case(trim(option_buffer))
-             case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "HeatTransfer", "KEpsilon" )
+             case ( "AdvectionDiffusion", "ConservationOfMass", "ReducedConservationOfMass", "InternalEnergy", "HeatTransfer", "KEpsilon", "KOmega") !Amin!
                 use_advdif=.true.
              case default
                 use_advdif=.false.

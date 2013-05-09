@@ -47,6 +47,7 @@ use vtk_interfaces
 use pickers_inquire
 use bulk_parameterisations
 use k_epsilon
+use k_omega !Amin!
 use integer_set_module !for iceshelf
 use fields_base !for iceshelf
 use fields ! for iceshelf
@@ -132,6 +133,7 @@ contains
     ! - ocean forcing
     ! - GLS stable boundaries
     ! - k-epsilon turbulence model
+    ! - k-omega turbulence model !Amin!?
     if (have_option('/geometry/ocean_boundaries')) then
        ! NOTE: has to be a pointer, as bcs should be added to original field
        sfield => extract_scalar_field(states(1), "DistanceToTop")
@@ -235,6 +237,18 @@ contains
              bc_type = "neumann"
           else
              ewrite(2,*) "Changing k_epsilon BC type to dirichlet"
+             bc_type = "dirichlet"
+          end if
+       end if
+
+       ! Same thing for k_omega turbulence model. !Amin!
+       if (trim(bc_type) .eq. "k_omega") then
+          call get_option(trim(bc_path_i)//"/type::k_omega/", bc_type)
+          if (trim(bc_type) .eq. "low_Re" .and. trim(field%name) .eq. "TurbulentDissipation") then
+             ewrite(2,*) "Changing low_Re omega BC type to neumann"
+             bc_type = "neumann"
+          else
+             ewrite(2,*) "Changing k_omega BC type to dirichlet"
              bc_type = "dirichlet"
           end if
        end if
@@ -661,6 +675,12 @@ contains
           ewrite(2,*) "Calling keps_bcs"
           call keps_bcs(states(p+1))
        end if
+       
+       ! Special k-omega boundary conditions !Amin!
+       if (have_option(trim(states(p+1)%option_path)//'/subgridscale_parameterisations/k-omega')) then
+          ewrite(2,*) "Calling komega_bcs"
+          call komega_bcs(states(p+1))
+       end if
 
     end do
 
@@ -722,6 +742,12 @@ contains
        if (trim(bc_type) .eq. "k_epsilon") then
             ! skip k_epsilon boundaries - done seperately
             ! see parameterisation/k_epsilon.F90
+            cycle boundary_conditions
+       end if
+
+       if (trim(bc_type) .eq. "k_omega") then !Amin!
+            ! skip k_omega boundaries - done seperately
+            ! see parameterisation/k_omega.F90
             cycle boundary_conditions
        end if
 
@@ -821,6 +847,13 @@ contains
        
            if(.not. have_option &
            ("/material_phase[0]/subgridscale_parameterisations/k-epsilon/") ) then
+               FLAbort("Incorrect boundary condition type for field")
+           end if
+
+       case( "k_omega" ) !Amin!
+       
+           if(.not. have_option &
+           ("/material_phase[0]/subgridscale_parameterisations/k-omega/") ) then
                FLAbort("Incorrect boundary condition type for field")
            end if
 

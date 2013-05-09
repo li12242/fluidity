@@ -26,8 +26,8 @@ p = function(-1.0, 1.0, 1.0, 1.0,
 eps = function(8.2, -3.8, 4.3, 1.7, 
              1.0, 0.0, 0.0, 1.0, 1.0, 0.0,
              0.7, 0.8, 0.6)
-v = integral(-diff(u,x),y)  # divergence free
-nu_T = ke^2/eps
+v = integral(-diff(u,x),y)  # divergence free ?
+nu_T = ke^2/eps # c_mu ? all coeff are set to 1
 nu = 1.0
 
 g_x = 0.707106781

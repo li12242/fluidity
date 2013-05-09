@@ -210,6 +210,34 @@ contains
                   tmpint, default=nsol)
              priority(nsol) = -tmpint*100
           end if
+
+          ! Check for k-omega - we need to make sure these fields are solved *after*
+          ! everything else, so set to a big negative value. In addition, the
+          ! TurbulentFrequency (Omega) solve *must* come after the TKE solve,
+          ! so make sure the priority is set such that this happens. !Amin!
+          if (have_option('/material_phase[' &
+               //int2str(p)//']/subgridscale_parameterisations/k-omega/scalar_field::TurbulentKineticEnergy/prognostic')) then
+             nsol=nsol+1
+             temp_field_name_list(nsol) = "TurbulentKineticEnergy"
+             temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
+                  ']/subgridscale_parameterisations/k-omega/scalar_field::TurbulentKineticEnergy'
+             temp_field_state_list(nsol) = p+1
+             call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
+                  tmpint, default=nsol)
+             priority(nsol) = -tmpint*100
+          end if
+          if (have_option('/material_phase[' &
+               //int2str(p)//']/subgridscale_parameterisations/k-omega/scalar_field::TurbulentDissipation/prognostic')) then
+             nsol=nsol+1
+             temp_field_name_list(nsol) = "TurbulentDissipation"
+             temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
+                  ']/subgridscale_parameterisations/k-omega/scalar_field::TurbulentDissipation'
+             temp_field_state_list(nsol) = p+1
+             call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
+                  tmpint, default=nsol)
+             priority(nsol) = -tmpint*100
+          end if
+
 !!! Melt rate should be the last thing to calculate, Sb
           if (have_option('/ocean_forcing/iceshelf_meltrate/Holland08/scalar_field::Sb/diagnostic')) then
              nsol=nsol+1
@@ -325,6 +353,15 @@ contains
        end if
        if (have_option('/material_phase[' &
             //int2str(p)//']/subgridscale_parameterisations/k-epsilon/scalar_field::TurbulentDissipation/prognostic')) then
+          ntsol=ntsol + 1
+       end if
+       ! prognostic scalar fields for k-omega turbulence model: !Amin!
+       if (have_option('/material_phase[' &
+            //int2str(p)//']/subgridscale_parameterisations/k-omega/scalar_field::TurbulentKineticEnergy/prognostic')) then
+          ntsol=ntsol + 1
+       end if
+       if (have_option('/material_phase[' &
+            //int2str(p)//']/subgridscale_parameterisations/k-omega/scalar_field::TurbulentDissipation/prognostic')) then
           ntsol=ntsol + 1
        end if
        !Melting
