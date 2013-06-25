@@ -103,6 +103,7 @@ module fluids_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
   use momentum_diagnostic_fields, only: calculate_densities
   use tictoc
+  use sediment_diagnostics, only: calculate_sediment_flux
 
   implicit none
 
@@ -789,6 +790,9 @@ contains
           end if
 
        end do nonlinear_iteration_loop
+
+       ! Calculate prognostic sediment deposit fields
+       call calculate_sediment_flux(state(1))
 
        ! Reset the number of nonlinear iterations in case it was overwritten by nonlinear_iterations_adapt
        call get_option('/timestepping/nonlinear_iterations',nonlinear_iterations,&
