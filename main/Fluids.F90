@@ -102,6 +102,7 @@ module fluids_module
   use multiphase_module
   use detector_parallel, only: sync_detector_coordinates, deallocate_detector_list_array
   use momentum_diagnostic_fields, only: calculate_densities
+  use tictoc
 
   implicit none
 
@@ -478,6 +479,8 @@ contains
        end if
 
        ewrite(2,*)'steady_state_tolerance,nonlinear_iterations:',steady_state_tolerance,nonlinear_iterations
+
+       call tic(TICTOC_ID_TIMESTEP)
 
        call copy_to_stored_values(state,"Old")
        if (have_option('/mesh_adaptivity/mesh_movement') .and. .not. have_option('/mesh_adaptivity/mesh_movement/free_surface')) then
@@ -860,6 +863,10 @@ contains
           end if
 
        end if
+
+       call toc(TICTOC_ID_TIMESTEP)
+       call tictoc_report(2, TICTOC_ID_TIMESTEP)
+       call tictoc_clear(TICTOC_ID_TIMESTEP)
 
        if(simulation_completed(current_time)) exit timestep_loop
 
