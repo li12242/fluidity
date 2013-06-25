@@ -283,8 +283,7 @@
          integer :: istate_fluid, istate_particle
    
          ! Types of drag correlation
-         integer, parameter :: DRAG_CORRELATION_TYPE_STOKES = 1, DRAG_CORRELATION_TYPE_WEN_YU = 2, DRAG_CORRELATION_TYPE_ERGUN = 3, &
-                               & DRAG_CORRELATION_SIMPLIFIED_HARLOW_AMSDEN = 4
+         integer, parameter :: DRAG_CORRELATION_TYPE_STOKES = 1, DRAG_CORRELATION_TYPE_WEN_YU = 2, DRAG_CORRELATION_TYPE_ERGUN = 3, DRAG_CORRELATION_SIMPLIFIED_HARLOW_AMSDEN = 4
          
          ewrite(1, *) "Entering add_fluid_particle_drag"
          
