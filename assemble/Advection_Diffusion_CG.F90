@@ -569,24 +569,30 @@ contains
       
       ! Depending on the equation type, extract the density or set it to some dummy field allocated above
       temp_velocity_ptr => extract_vector_field(state, "Velocity")
-      call get_option(trim(temp_velocity_ptr%option_path)//"/prognostic/equation[0]/name", velocity_equation_type)
-      select case(velocity_equation_type)
-         case("LinearMomentum")
+      call get_option(trim(temp_velocity_ptr%option_path)//"/prognostic/equation[0]/name", velocity_equation_type, stat=stat)
+      if (stat /= 0) then
+            density=>dummydensity
+            olddensity => dummydensity
+            density_theta = 1.0
+      else
+        select case(velocity_equation_type)
+          case("LinearMomentum")
             density=>extract_scalar_field(state, "Density")
             olddensity => dummydensity
             density_theta = 1.0
-         case("Boussinesq")
+          case("Boussinesq")
             density=>dummydensity
             olddensity => dummydensity
             density_theta = 1.0
-         case("Drainage")
+          case("Drainage")
             density=>dummydensity
             olddensity => dummydensity
             density_theta = 1.0
-         case default
+          case default
             ! developer error... out of sync options input and code
             FLAbort("Unknown equation type for velocity")
-      end select
+        end select
+      end if
       ewrite_minmax(density)
 
     case default
