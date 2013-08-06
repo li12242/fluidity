@@ -363,7 +363,21 @@
       <prognostic>
         <mesh name="PressureMesh"/>
         <equation name="InternalEnergy">
-          <density name="Density"/>
+          <density name="Density">
+            <discretisation_options>
+              <spatial_discretisation>
+                <control_volumes>
+                  <face_value name="FirstOrderUpwind"/>
+                </control_volumes>
+              </spatial_discretisation>
+              <temporal_discretisation>
+                <theta>
+                  <real_value rank="0">1.0</real_value>
+                </theta>
+                <control_volumes/>
+              </temporal_discretisation>
+            </discretisation_options>
+          </density>
         </equation>
         <spatial_discretisation>
           <control_volumes>
@@ -415,57 +429,6 @@
         </steady_state>
         <consistent_interpolation/>
       </prognostic>
-    </scalar_field>
-    <scalar_field name="HydrostaticBalancePressure" rank="0">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
-  from math import exp
-  T0 = 288.15 # K
-  R = 287.058 # Specific gas constant in J/Kg
-  g = 9.8 # m/s**2
-  h = X[0] # m
-  p0 = 101325
-  e = T0*1406.0
-  gamma = 1.33
-  p = p0*exp(-(g*h)/((gamma-1.0)*e))
-  return p</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
-    </scalar_field>
-    <scalar_field name="HydrostaticBalanceDensity" rank="0">
-      <prescribed>
-        <mesh name="PressureMesh"/>
-        <value name="WholeMesh">
-          <python>
-            <string_value lines="20" type="code" language="python">def val(X,t):
-  from math import exp
-  T0 = 288.15 # K
-  R = 287.058 # Specific gas constant in J/Kg
-  g = 9.8 # m/s**2
-  h = X[0] # m
-  p0 = 101325
-  e = T0*1406.0
-  gamma = 1.33
-  p = p0*exp(-(g*h)/((gamma-1.0)*e))
-  rho = p/((gamma-1.0)*e)
-  return rho</string_value>
-          </python>
-        </value>
-        <output/>
-        <stat/>
-        <detectors>
-          <exclude_from_detectors/>
-        </detectors>
-      </prescribed>
     </scalar_field>
     <scalar_field name="PhaseVolumeFraction" rank="0">
       <diagnostic>

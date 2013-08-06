@@ -432,22 +432,5 @@
         <consistent_interpolation/>
       </prognostic>
     </scalar_field>
-    <scalar_field name="SpeedOfSound" rank="0">
-      <diagnostic>
-        <algorithm name="speed_of_sound" material_phase_support="multiple"/>
-        <mesh name="PressureMesh"/>
-        <output/>
-        <stat/>
-        <convergence>
-          <include_in_convergence/>
-        </convergence>
-        <detectors>
-          <include_in_detectors/>
-        </detectors>
-        <steady_state>
-          <include_in_steady_state/>
-        </steady_state>
-      </diagnostic>
-    </scalar_field>
   </material_phase>
 </fluidity_options>

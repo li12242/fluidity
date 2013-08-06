@@ -135,7 +135,7 @@ module momentum_DG
   logical :: have_advection
   logical :: move_mesh
   logical :: have_pressure_bc
-  logical :: remove_hydrostatic_balance
+  logical :: subtract_out_reference_profile
   
   real :: gravity_magnitude
 
@@ -216,9 +216,11 @@ contains
     !! Surface tension field
     type(tensor_field) :: surfacetension
 
-    ! Fields for the remove_hydrostatic_balance option under the Velocity field
-    type(scalar_field), pointer :: hb_buoyancy
-    type(scalar_field) :: hb_pressure
+    ! Dummy fields in case state doesn't contain the above fields
+    type(scalar_field), pointer :: dummyscalar
+
+    ! Fields for the subtract_out_reference_profile option under the Velocity field
+    type(scalar_field), pointer :: hb_density, hb_pressure
 
     !! field over the entire surface mesh, giving bc values
     type(vector_field) :: velocity_bc
@@ -329,6 +331,11 @@ contains
     end if
     ewrite(2, *) "Include advection? ", have_advection
 
+    allocate(dummyscalar)
+    call allocate(dummyscalar, u%mesh, "DummyScalar", field_type=FIELD_TYPE_CONSTANT)
+    call zero(dummyscalar)
+    dummyscalar%option_path=""
+
     Source=extract_vector_field(state, "VelocitySource", stat)
     have_source = (stat==0)
     if (.not.have_source) then
@@ -402,19 +409,20 @@ contains
 
     ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
     ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
-    ! Here we subtract the hydrostatic component from the density used in the buoyancy term of the momentum equation.
-    if (have_option(trim(u%option_path)//'/prognostic/remove_hydrostatic_balance')) then
-       remove_hydrostatic_balance = .true.
-       hb_buoyancy => extract_scalar_field(state, "HydrostaticBalanceDensity")
+    ! We subtract the hydrostatic component from the density used in the buoyancy term of the momentum equation.
+    if (have_option(trim(state%option_path)//'/equation_of_state/compressible/subtract_out_reference_profile')) then
+       subtract_out_reference_profile = .true.
+       hb_density => extract_scalar_field(state, "HydrostaticReferenceDensity")
 
        if(l_include_pressure_bcs) then
-          call allocate(hb_pressure, p%mesh, "TempHydrostaticBalancePressure")
-          call zero(hb_pressure)
-          call calculate_galerkin_projection(state,&
-                  extract_scalar_field(state, "HydrostaticBalancePressure"), hb_pressure)
+          hb_pressure => extract_scalar_field(state, "HydrostaticReferencePressure")
+       else
+          hb_pressure => dummyscalar
        end if
     else
-       remove_hydrostatic_balance = .false.
+       subtract_out_reference_profile = .false.
+       hb_density => dummyscalar
+       hb_pressure => dummyscalar
     end if
 
     Viscosity=extract_tensor_field(state, "Viscosity", stat)
@@ -683,7 +691,7 @@ contains
        ele = fetch(colours(clr), nnid)
        call construct_momentum_element_dg(ele, big_m, rhs, &
             & X, U, advecting_velocity, U_mesh, X_old, X_new, &
-            & Source, Buoyancy, hb_buoyancy, hb_pressure, gravity, Abs, Viscosity, &
+            & Source, Buoyancy, hb_density, hb_pressure, gravity, Abs, Viscosity, &
             & P, Rho, surfacetension, q_mesh, &
             & velocity_bc, velocity_bc_type, &
             & pressure_bc, pressure_bc_type, &
@@ -732,9 +740,8 @@ contains
     if(multiphase) then
       call deallocate(nvfrac)
     end if
-    if(remove_hydrostatic_balance .and. l_include_pressure_bcs) then
-       call deallocate(hb_pressure) 
-    end if
+    call deallocate(dummyscalar)
+    deallocate(dummyscalar)
     
     ewrite(1, *) "Exiting construct_momentum_dg"
 
@@ -743,7 +750,7 @@ contains
   end subroutine construct_momentum_dg
 
   subroutine construct_momentum_element_dg(ele, big_m, rhs, &
-       &X, U, U_nl, U_mesh, X_old, X_new, Source, Buoyancy, hb_buoyancy, hb_pressure, gravity, Abs, &
+       &X, U, U_nl, U_mesh, X_old, X_new, Source, Buoyancy, hb_density, hb_pressure, gravity, Abs, &
        &Viscosity, P, Rho, surfacetension, q_mesh, &
        &velocity_bc, velocity_bc_type, &
        &pressure_bc, pressure_bc_type, &
@@ -771,9 +778,9 @@ contains
     type(vector_field), intent(in) :: X, U, U_nl, Source, gravity, Abs
     type(vector_field), pointer :: U_mesh, X_old, X_new
     !! Viscosity
-    type(tensor_field), intent(in) :: Viscosity
-    type(scalar_field), intent(in) :: P, Rho
-    type(scalar_field), intent(in) :: hb_buoyancy, hb_pressure
+    type(tensor_field) :: Viscosity
+    type(scalar_field) :: P, Rho
+    type(scalar_field), intent(in) :: hb_density, hb_pressure
     !! surfacetension
     type(tensor_field) :: surfacetension
     !! field containing the bc values of velocity
@@ -1278,8 +1285,8 @@ contains
 
     if(have_gravity.and.acceleration.and.assemble_element) then
       ! buoyancy
-      if(remove_hydrostatic_balance) then
-         coefficient_detwei = detwei*gravity_magnitude*(ele_val_at_quad(buoyancy, ele)-ele_val_at_quad(hb_buoyancy, ele))
+      if(subtract_out_reference_profile) then
+         coefficient_detwei = detwei*gravity_magnitude*(ele_val_at_quad(buoyancy, ele)-ele_val_at_quad(hb_density, ele))
       else
          coefficient_detwei = detwei*gravity_magnitude*ele_val_at_quad(buoyancy, ele)
       end if
@@ -1723,7 +1730,7 @@ contains
                         & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
                         & Rho, hb_pressure, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
-                        & pressure_bc, pressure_bc_type, &
+                        & pressure_bc, pressure_bc_type, hb_pressure, &
                         & subcycle_m_tensor_addto, nvfrac, &
                         & ele2grad_mat=ele2grad_mat, kappa_mat=kappa_mat, &
                         & inverse_mass_mat=inverse_mass_mat, &
@@ -1736,7 +1743,7 @@ contains
                         & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
                         & Rho, hb_pressure, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
-                        & pressure_bc, pressure_bc_type, &
+                        & pressure_bc, pressure_bc_type, hb_pressure, &
                         & subcycle_m_tensor_addto, nvfrac)
             end if
         end if
@@ -2005,7 +2012,7 @@ contains
        & rhs_addto, Grad_U_mat, Div_U_mat, X, Rho, hb_pressure, U,&
        & U_nl, U_mesh, P, q_mesh, surfacetension, &
        & velocity_bc, velocity_bc_type, &
-       & pressure_bc, pressure_bc_type, &
+       & pressure_bc, pressure_bc_type, hb_pressure, &
        & subcycle_m_tensor_addto, nvfrac, &
        & ele2grad_mat, kappa_mat, inverse_mass_mat, &
        & viscosity, viscosity_mat)
@@ -2034,6 +2041,7 @@ contains
     integer, dimension(:,:), intent(in) :: velocity_bc_type
     type(scalar_field), intent(in) :: pressure_bc
     integer, dimension(:), intent(in) :: pressure_bc_type
+    type(scalar_field), intent(in) :: hb_pressure
 
     !! Computation of primal fluxes and penalty fluxes
     real, intent(in), optional, dimension(:,:,:) :: ele2grad_mat
@@ -2366,9 +2374,9 @@ contains
        ! add -|  N_i M_j \vec n p_j, where p_j are the prescribed bc values
        !      /
        do dim = 1, U%dim
-          if(remove_hydrostatic_balance) then
+          if(subtract_out_reference_profile) then
             rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) - &
-                 matmul( face_val(hb_pressure, face) - ele_val(pressure_bc, face), mnCT(1,dim,:,:) )
+                 matmul( ele_val(pressure_bc, face) - face_val(hb_pressure, face), mnCT(1,dim,:,:) )
           else
             rhs_addto(dim,u_face_l) = rhs_addto(dim,u_face_l) - &
                  matmul( ele_val(pressure_bc, face), mnCT(1,dim,:,:) )
