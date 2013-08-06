@@ -888,10 +888,6 @@
          call deallocate(nvfrac)
       end if
 
-      if(remove_hydrostatic_balance.and.integrate_continuity_by_parts.and.(assemble_ct_matrix_here .or. include_pressure_and_continuity_bcs)) then
-         call deallocate(hb_pressure)
-      end if
-
       if (stabilisation_scheme == STABILISATION_SUPG) then
          do i = 1, num_threads
             call deallocate(supg_element(i))
@@ -956,7 +952,6 @@
       type(vector_field), intent(in) :: u, nu
       type(vector_field), pointer :: ug
       type(scalar_field), intent(in) :: density
-      type(scalar_field), intent(in) :: hb_pressure
       type(vector_field), pointer, intent(in) :: gravity 
 
       type(vector_field), intent(in) :: velocity_bc

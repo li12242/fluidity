@@ -1728,7 +1728,7 @@ contains
                    call construct_momentum_interface_dg(ele, face, face_2, ni,&
                         & big_m_tensor_addto, &
                         & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
-                        & Rho, hb_pressure, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
+                        & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, hb_pressure, &
                         & subcycle_m_tensor_addto, nvfrac, &
@@ -1741,7 +1741,7 @@ contains
                    call construct_momentum_interface_dg(ele, face, face_2, ni,&
                         & big_m_tensor_addto, &
                         & rhs_addto, Grad_U_mat_q, Div_U_mat_q, X,&
-                        & Rho, hb_pressure, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
+                        & Rho, U, U_nl, U_mesh, P, q_mesh, surfacetension, &
                         & velocity_bc, velocity_bc_type, &
                         & pressure_bc, pressure_bc_type, hb_pressure, &
                         & subcycle_m_tensor_addto, nvfrac)
@@ -2009,7 +2009,7 @@ contains
 
   subroutine construct_momentum_interface_dg(ele, face, face_2, ni, &
        & big_m_tensor_addto, &
-       & rhs_addto, Grad_U_mat, Div_U_mat, X, Rho, hb_pressure, U,&
+       & rhs_addto, Grad_U_mat, Div_U_mat, X, Rho, U,&
        & U_nl, U_mesh, P, q_mesh, surfacetension, &
        & velocity_bc, velocity_bc_type, &
        & pressure_bc, pressure_bc_type, hb_pressure, &
@@ -2030,7 +2030,7 @@ contains
     ! We pass these additional fields to save on state lookups.
     type(vector_field), intent(in) :: X, U, U_nl
     type(vector_field), pointer :: U_mesh
-    type(scalar_field), intent(in) :: Rho, P, hb_pressure
+    type(scalar_field), intent(in) :: Rho, P
     type(scalar_field), intent(in) :: nvfrac
     !! Mesh of the auxiliary variable in the second order operator.
     type(mesh_type), intent(in) :: q_mesh
