@@ -227,11 +227,11 @@ contains
              priority(nsol) = -tmpint*100
           end if
           if (have_option('/material_phase[' &
-               //int2str(p)//']/subgridscale_parameterisations/k-omega/scalar_field::TurbulentDissipation/prognostic')) then
+               //int2str(p)//']/subgridscale_parameterisations/k-omega/scalar_field::TurbulentFrequency/prognostic')) then
              nsol=nsol+1
-             temp_field_name_list(nsol) = "TurbulentDissipation"
+             temp_field_name_list(nsol) = "TurbulentFrequency"
              temp_field_optionpath_list(nsol)='/material_phase['//int2str(p)// &
-                  ']/subgridscale_parameterisations/k-omega/scalar_field::TurbulentDissipation'
+                  ']/subgridscale_parameterisations/k-omega/scalar_field::TurbulentFrequency'
              temp_field_state_list(nsol) = p+1
              call get_option(trim(temp_field_optionpath_list(nsol))//'/prognostic/priority', &
                   tmpint, default=nsol)
@@ -361,7 +361,7 @@ contains
           ntsol=ntsol + 1
        end if
        if (have_option('/material_phase[' &
-            //int2str(p)//']/subgridscale_parameterisations/k-omega/scalar_field::TurbulentDissipation/prognostic')) then
+            //int2str(p)//']/subgridscale_parameterisations/k-omega/scalar_field::TurbulentFrequency/prognostic')) then
           ntsol=ntsol + 1
        end if
        !Melting
