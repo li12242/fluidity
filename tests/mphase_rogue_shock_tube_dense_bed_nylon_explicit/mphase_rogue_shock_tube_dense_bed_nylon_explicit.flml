@@ -72,7 +72,7 @@
       <real_value rank="0">0.0</real_value>
     </current_time>
     <timestep>
-      <real_value rank="0">2.5e-6</real_value>
+      <real_value rank="0">7.5e-6</real_value>
     </timestep>
     <finish_time>
       <real_value rank="0">0.002</real_value>
@@ -80,7 +80,7 @@
     <nonlinear_iterations>
       <integer_value rank="0">2</integer_value>
       <tolerance>
-        <real_value rank="0">1.0e-9</real_value>
+        <real_value rank="0">1.0e-4</real_value>
         <infinity_norm/>
       </tolerance>
     </nonlinear_iterations>
@@ -314,7 +314,7 @@
             <value name="WholeMesh">
               <anisotropic_asymmetric>
                 <constant>
-                  <real_value symmetric="false" dim2="dim" shape="2 2" dim1="dim" rank="2">1.87e-5 1.87e-5 1.87e-5 1.87e-5</real_value>
+                  <real_value symmetric="false" dim2="dim" shape="2 2" dim1="dim" rank="2">1.85e-5 1.85e-5 1.85e-5 1.85e-5</real_value>
                 </constant>
               </anisotropic_asymmetric>
             </value>
@@ -398,6 +398,12 @@
     return 208333.333333</string_value>
           </python>
         </initial_condition>
+        <boundary_conditions name="All">
+          <surface_ids>
+            <integer_value shape="3" rank="1">333 444 666</integer_value>
+          </surface_ids>
+          <type name="zero_flux"/>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -489,7 +495,7 @@
         <real_value rank="0">0.026</real_value>
       </effective_conductivity>
       <specific_heat>
-        <real_value rank="0">758</real_value>
+        <real_value rank="0">718</real_value>
       </specific_heat>
     </multiphase_properties>
   </material_phase>
@@ -722,6 +728,12 @@
     return 208333.333333</string_value>
           </python>
         </initial_condition>
+        <boundary_conditions name="All">
+          <surface_ids>
+            <integer_value shape="3" rank="1">333 444 666</integer_value>
+          </surface_ids>
+          <type name="zero_flux"/>
+        </boundary_conditions>
         <output/>
         <stat/>
         <convergence>
@@ -852,7 +864,7 @@
         <real_value rank="0">2.0e-3</real_value>
       </particle_diameter>
       <specific_heat>
-        <real_value rank="0">758</real_value>
+        <real_value rank="0">718</real_value>
       </specific_heat>
     </multiphase_properties>
   </material_phase>
