@@ -64,7 +64,6 @@
       use state_matrices_module
       use vtk_interfaces
       use rotated_boundary_conditions
-      use Weak_BCs
       use reduced_model_runtime
       use state_fields_module
       use Tidal_module
@@ -183,7 +182,7 @@
          ! Scaled pressure mass matrix - used for preconditioning full projection solve:
          type(csr_matrix), target :: scaled_pressure_mass_matrix
          type(csr_sparsity), pointer :: scaled_pressure_mass_matrix_sparsity
-         ! Left hand matrix of CMC. For incompressibe flow this points to ct_m as they are identical, 
+         ! Left hand matrix of CMC. For incompressible flow this points to ct_m as they are identical, 
          ! unless for CG pressure with CV tested continuity case when this matrix will be the 
          ! CV divergence tested matrix and ct_m the CG divergence tested matrix (right hand matrix of CMC).
          ! For compressible flow this differs to ct_m in that it will contain the variable density.
@@ -682,12 +681,6 @@
 
             if (has_boundary_condition(u, "drag")) then
                call drag_surface(big_m(istate), mom_rhs(istate), state(istate), density)
-            end if
-
-            ! Near wall treatment
-            if (has_boundary_condition(u, "near_wall_treatment") .or. &
-               has_boundary_condition(u, "log_law_of_wall")) then
-               call wall_functions(big_m(istate), mom_rhs(istate), state(istate))
             end if
 
             call profiler_toc(u, "assembly")
@@ -1450,11 +1443,11 @@
          if(full_schur) then
             if(assemble_schur_auxiliary_matrix) then
                call petsc_solve_full_projection(p_theta, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, poisson_rhs, &
-                  full_projection_preconditioner, state(prognostic_p_istate), u, &
+                  full_projection_preconditioner, state(prognostic_p_istate), u%mesh, &
                   auxiliary_matrix=schur_auxiliary_matrix)
             else
                call petsc_solve_full_projection(p_theta, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, poisson_rhs, &
-                  full_projection_preconditioner, state(prognostic_p_istate), u)
+                  full_projection_preconditioner, state(prognostic_p_istate), u%mesh)
             end if
          else
             !! Go ahead and solve for the pressure guess p^{*}
@@ -1515,6 +1508,11 @@
          type(vector_field) :: delta_u
          type(vector_field), pointer :: positions
 
+         ! Fields for the subtract_out_reference_profile option under the Velocity field
+         type(scalar_field), pointer :: hb_pressure
+         type(scalar_field) :: combined_p
+         integer :: stat
+
          ewrite(1,*) 'Entering advance_velocity'
 
 
@@ -1539,6 +1537,20 @@
                &have_option('/ocean_forcing/shelf')) then
             ewrite(1,*) "shelf: Entering compute_pressure_and_tidal_gradient"
                call compute_pressure_and_tidal_gradient(state(istate), delta_u, ct_m(istate)%ptr, p_theta, x)
+            else if (have_option(trim(state(istate)%option_path)//'/equation_of_state/compressible/subtract_out_reference_profile')) then
+               ! Splits up the Density and Pressure fields into a hydrostatic component (') and a perturbed component (''). 
+               ! The hydrostatic components, denoted p' and rho', should satisfy the balance: grad(p') = rho'*g
+               ! We subtract the hydrostatic component from the pressure used in the pressure gradient term of the momentum equation.
+               hb_pressure => extract_scalar_field(state(istate), "HydrostaticReferencePressure", stat)
+               if(stat /= 0) then
+                  FLExit("When using the subtract_out_reference_profile option, please set a (prescribed) HydrostaticReferencePressure field.")
+                  ewrite(-1,*) 'The HydrostaticReferencePressure field, defining the hydrostatic component of the pressure field, needs to be set.'
+               end if
+               call allocate(combined_p,p_theta%mesh, "PressurePerturbation")
+               call set(combined_p, p_theta)
+               call addto(combined_p, hb_pressure, scale=-1.0)
+               call mult_T(delta_u, ct_m(istate)%ptr, combined_p)
+               call deallocate(combined_p)
             else
                call mult_T(delta_u, ct_m(istate)%ptr, p_theta)
             end if
@@ -1770,11 +1782,11 @@
          if(full_schur) then
             if(assemble_schur_auxiliary_matrix) then
                call petsc_solve_full_projection(delta_p, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, projec_rhs, &
-               full_projection_preconditioner, state(prognostic_p_istate), u, &
+               full_projection_preconditioner, state(prognostic_p_istate), u%mesh, &
                auxiliary_matrix=schur_auxiliary_matrix)
             else
                call petsc_solve_full_projection(delta_p, ctp_m(prognostic_p_istate)%ptr, inner_m(prognostic_p_istate)%ptr, ct_m(prognostic_p_istate)%ptr, projec_rhs, &
-               full_projection_preconditioner, state(prognostic_p_istate), u)
+               full_projection_preconditioner, state(prognostic_p_istate), u%mesh)
             end if
          else
             call petsc_solve(delta_p, cmc_m, projec_rhs, state(prognostic_p_istate))
@@ -2142,8 +2154,9 @@
                
                bc_loop: do bc = 0, nbc - 1               
 
-                  if(have_option("/material_phase["//int2str(i)//"]/vector_field::Velocity/prognostic&
-                                 &/boundary_conditions["//int2str(bc)//"]/type::free_surface")) then
+                  if(have_option("/material_phase["//int2str(i)//&
+                                 &"]/vector_field::Velocity/prognostic/boundary_conditions["&
+                                 &//int2str(bc)//"]/type::free_surface")) then
                      ewrite(-1,*) "Cannot have free_surface BC for Velocity of phase ",i+1
                      ewrite(-1,*) "when using a CG pressure with a CV tested continuity equation"
                      FLExit("For CG Pressure cannot test the continuity equation with CV when Velocity has a free_surface BC")
@@ -2194,6 +2207,17 @@
                   FLExit("Cannot use implicit solids two way coupling if the pressure is control volume discretised")
                end if
                
+            end if
+            
+            ! Check that each particle phase has a PROGNOSTIC PhaseVolumeFraction field.
+            ! The fluid phase cannot have a prognostic PhaseVolumeFraction as this is not always valid.
+            ! For example, since we do not include the Density in the advection-diffusion equation for the PhaseVolumeFraction,
+            ! solving this equation for the compressible fluid phase would not be correct. The particle phases on the other hand
+            ! are always incompressible where the density is constant.
+            if(have_option("/material_phase["//int2str(i)//"]/multiphase_properties/particle_diameter") .and. &
+               .not.(have_option("/material_phase["//int2str(i)//"]/scalar_field::PhaseVolumeFraction/prognostic") .or. &
+               have_option("/material_phase["//int2str(i)//"]/scalar_field::PhaseVolumeFraction/prescribed"))) then
+               FLExit("All particle phases must have a prognostic/prescribed PhaseVolumeFraction field. The diagnostic PhaseVolumeFraction field should always be in the continuous/fluid phase.")
             end if
             
          end do
