@@ -376,6 +376,8 @@ contains
        end if
        if (have_option('/material_phase[' &
             //int2str(p)//']/subgridscale_parameterisations/k-omega/scalar_field::TurbulentFrequency/prognostic')) then
+          ntsol=ntsol + 1
+       end if
        ! prognostic scalar fields for subgrid-scale kinetic energy model:
        if(have_option('/material_phase['//int2str(p)// &
             ']/vector_field::Velocity/prognostic/spatial_discretisation/continuous_galerkin/scalar_field::SubgridKineticEnergy')) then
@@ -396,7 +398,6 @@ contains
           ntsol=ntsol + get_n_sediment_fields()
        end if
 
-      end if
     end do
 
   end subroutine get_ntsol

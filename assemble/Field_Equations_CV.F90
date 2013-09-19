@@ -305,7 +305,7 @@ contains
               FLAbort("Unknown equation type for velocity")
         end select
 
-      case(FIELD_EQUATION_KOMEGA) !Amin! 
+      case(FIELD_EQUATION_KOMEGA) 
         ! Depending on the equation type, extract the density or set it to some dummy field allocated above
         temp_velocity_ptr => extract_vector_field(state(1), "Velocity")
         call get_option(trim(temp_velocity_ptr%option_path)//"/prognostic/equation[0]/name", velocity_equation_type)
@@ -1325,7 +1325,7 @@ contains
           FLExit("Moving mesh with this equation type not yet supported.")
         end if
 
-      case (FIELD_EQUATION_KOMEGA) !Amin!
+      case (FIELD_EQUATION_KOMEGA)
 
         ! [\rho^{n+1}M + dt*A_m + dt*theta*D_m](T^{n+1}-T^{n})/dt = rhs - [A_m + D_m]*T^{n} - diff_rhs
 
