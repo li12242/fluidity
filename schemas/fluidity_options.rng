@@ -4181,6 +4181,15 @@ boundary condition on the surface_ids specified.</a:documentation>
         <empty/>
       </element>
       <element name="type">
+        <a:documentation>Implements a prescribed normal flow. Works for DG only. This
+implements a weakly imposed bounadry condition normal to the surface.
+Note: Positive points out of the domain, negative into the domain.</a:documentation>
+        <attribute name="name">
+          <value>prescribed_normal_flow</value>
+        </attribute>
+        <ref name="input_choice_real_bc_component"/>
+      </element>
+      <element name="type">
         <a:documentation>Flux boundary condition. 
 
 Weakly enforces a flux across a boundary</a:documentation>
@@ -4848,23 +4857,76 @@ use the prognostic FreeSurface field. In this case you may
         <attribute name="name">
           <value>FreeSurface</value>
         </attribute>
-        <element name="diagnostic">
-          <a:documentation>Free Surface
-NOTE: the diagnostic FreeSurface field only works in combination
+        <choice>
+          <element name="diagnostic">
+            <a:documentation>Free Surface elevation, to be used in combination with:
+
+* a free_surface boundary condition applied to the Velocity
+field, without the no_normal_stress_option.
+It gives you a full dimensional field (constant over the vertical)
+of the free surface elevation.
+
+* equation type ShallowWater for Velocity. It simply divides 
+Pressure by g, the gravitational constant.</a:documentation>
+            <ref name="internal_algorithm"/>
+            <ref name="pressure_mesh_choice">
+              <a:documentation>Must be on the same mesh as Pressure</a:documentation>
+            </ref>
+            <ref name="diagnostic_scalar_field"/>
+          </element>
+          <element name="prognostic">
+            <a:documentation>Free Surface
+NOTE: the prognostic FreeSurface field only works in combination
 with the free_surface boundary condition applied to the Velocity
-field. It gives you a 3D field (constant over the vertical)
-of the free surface elevation.</a:documentation>
-          <ref name="internal_algorithm"/>
-          <!--
-            this is hard-coded on the PressureMesh as long as the Pressure is
-            if this is no longer true, it should be option-checked to be on the
-            same mesh as Pressure
-          -->
-          <ref name="pressure_mesh_choice">
-            <a:documentation>Must be on the same mesh as Pressure</a:documentation>
-          </ref>
-          <ref name="diagnostic_scalar_field"/>
-        </element>
+field in combination with the no_normal_stress_option.
+It gives you a full dimensional field (constant over the vertical)
+of the free surface elevation. Initial and boundary conditions
+for free surface should be set on this field.</a:documentation>
+            <ref name="pressure_mesh_choice">
+              <a:documentation>Must be on the same mesh as Pressure</a:documentation>
+            </ref>
+            <oneOrMore>
+              <choice>
+                <element name="initial_condition">
+                  <a:documentation>Initial condition for WholeMesh
+
+Only specify one condition if not using mesh regions.
+Otherwise select other initial_condition option, specify region_ids
+and distinct names.  Then add extra intial conditions for other regions.</a:documentation>
+                  <attribute name="name">
+                    <value>WholeMesh</value>
+                  </attribute>
+                  <ref name="input_choice_initial_condition_real"/>
+                </element>
+                <element name="initial_condition">
+                  <a:documentation>Multiple initial_conditions are allowed if specifying
+different values in different
+regions of the mesh (defined by region_ids).  In this case
+each initial_condition
+requires a distinct name for the options dictionary.</a:documentation>
+                  <attribute name="name">
+                    <data type="string" datatypeLibrary=""/>
+                  </attribute>
+                  <optional>
+                    <ref name="region_ids"/>
+                  </optional>
+                  <ref name="input_choice_initial_condition_real"/>
+                </element>
+              </choice>
+            </oneOrMore>
+            <element name="solver">
+              <a:documentation>Solver - only necessary in combination with an explicit no_normal_stress free_surface bc under Velocity.</a:documentation>
+              <ref name="linear_solver_options_sym"/>
+            </element>
+            <ref name="prognostic_scalar_output_options"/>
+            <ref name="prognostic_scalar_stat_options"/>
+            <ref name="scalar_convergence_options"/>
+            <ref name="prognostic_detector_options"/>
+            <ref name="scalar_steady_state_options"/>
+            <ref name="adaptivity_options_prognostic_scalar_field"/>
+            <ref name="interpolation_algorithm_scalar"/>
+          </element>
+        </choice>
       </element>
       <element name="scalar_field">
         <a:documentation>Wetting and drying alpha coefficient. Alpha is 1 in dry and 0 in wet regions.</a:documentation>
