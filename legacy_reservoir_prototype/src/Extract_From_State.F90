@@ -48,6 +48,7 @@
     use boundary_conditions
     use futils, only: int2str
     use boundary_conditions_from_options
+    use memory_diagnostics
 
     !use printout
     !use quicksort
@@ -60,7 +61,7 @@
     public :: Get_Primary_Scalars, Compute_Node_Global_Numbers, Extracting_MeshDependentFields_From_State, &
          Get_ScalarFields_Outof_State, Get_CompositionFields_Outof_State, Get_VectorFields_Outof_State, &
          Extract_TensorFields_Outof_State, Extract_Position_Field, xp1_2_xp2, Get_Ele_Type, Get_Discretisation_Options, &
-         print_from_state, update_boundary_conditions
+         print_from_state, update_boundary_conditions, pack_multistate
 
     interface Get_Ndgln
        module procedure Get_Scalar_Ndgln, Get_Vector_Ndgln, Get_Mesh_Ndgln
@@ -156,7 +157,7 @@
 !!$ Get the continuous space of the velocity field
       velocity_cg_mesh => extract_mesh( state, 'VelocityMesh_Continuous' )
       if( present( xu_nloc ) ) xu_nloc = ele_loc( velocity_cg_mesh, 1 )
-      if( present( xu_nonods ) ) xu_nonods = max(( xu_nloc - 1 ) * totele + 1, totele )
+      if( present( xu_nonods ) ) xu_nonods = node_count(velocity_cg_mesh)
 
 !!$ Take care of overlapping elements
       if( present( is_overlapping ) ) then
@@ -736,7 +737,6 @@
          Pressure_CV, Pressure_FEM, Pressure_FEM_BC_Spatial, Pressure_FEM_BC, &
          Density, Density_BC_Spatial, Density_BC, &
          Component, Component_BC_Spatial, Component_BC, Component_Source, &
-         Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
          Velocity_U_BC_Spatial,  wic_momu_bc, Velocity_U_BC, Velocity_V_BC, Velocity_W_BC, &
          suf_momu_bc, suf_momv_bc, suf_momw_bc, Velocity_U_Source, Velocity_Absorption, &
          Temperature, Temperature_BC_Spatial, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
@@ -752,7 +752,6 @@
            Pressure_CV, Pressure_FEM, Pressure_FEM_BC, &
            Density, Density_BC, &
            Component, Component_BC, Component_Source, &
-           Velocity_U, Velocity_V, Velocity_W, Velocity_NU, Velocity_NV, Velocity_NW, &
            Velocity_U_BC,  Velocity_V_BC, Velocity_W_BC, Velocity_U_Source, &
            Temperature, Temperature_BC, Temperature_Source, suf_t_bc_rob1, suf_t_bc_rob2, &
            Porosity, suf_momu_bc, suf_momv_bc, suf_momw_bc
@@ -775,6 +774,8 @@
       real :: dx
       logical :: is_overlapping, is_isotropic, is_diagonal, is_symmetric, have_gravity
       real, dimension( :, : ), allocatable :: constant
+      real, dimension( : ), allocatable:: Velocity_U, Velocity_V, Velocity_W
+      real, dimension( : ), allocatable:: Velocity_NU, Velocity_NV, Velocity_NW
 
 !!$ Extracting spatial resolution
       call Get_Primary_Scalars( state, &         
@@ -788,7 +789,9 @@
       allocate( x_ndgln_p1( totele * x_nloc_p1 ), x_ndgln( totele * x_nloc ), cv_ndgln( totele * cv_nloc ), &
            p_ndgln( totele * p_nloc ), mat_ndgln( totele * mat_nloc ), u_ndgln( totele * u_nloc ), &
            xu_ndgln( totele * xu_nloc ), cv_sndgln( stotel * cv_snloc ), p_sndgln( stotel * p_snloc ), &
-           u_sndgln( stotel * u_snloc ) )
+           u_sndgln( stotel * u_snloc ),&
+           Velocity_U(u_nonods*nphase),Velocity_V(u_nonods*nphase),Velocity_W(u_nonods*nphase),&
+           Velocity_NU(u_nonods*nphase),Velocity_NV(u_nonods*nphase),Velocity_NW(u_nonods*nphase))
 
       x_ndgln_p1 = 0 ; x_ndgln = 0 ; cv_ndgln = 0 ; p_ndgln = 0 ; mat_ndgln = 0
       u_ndgln = 0 ;  xu_ndgln = 0 ; cv_sndgln = 0 ; p_sndgln = 0 ; u_sndgln = 0
@@ -2008,5 +2011,233 @@
 
     end subroutine update_boundary_conditions
 
-  end module Copy_Outof_State
+
+    function pack_multistate(state) result(multistate)
+
+      type(state_type), dimension(:) :: state
+      type(state_type), dimension(:), pointer ::  multistate
+
+      integer :: i,j, nphase,ncomp, stat 
+
+      type(scalar_field), pointer :: sfield1
+      type(scalar_field) :: sfield2
+      type(vector_field), pointer :: vfield1, vfield2
+      type(tensor_field), pointer :: tfield1, tfield2
+
+      type(vector_field) , dimension(3):: multidensity
+      type(vector_field), dimension(3) :: multivelocity
+      type(vector_field) :: position, p_position, u_position
+      type(mesh_type) :: ovmesh,lmesh
+      character( len = option_path_len ) :: vel_element_type
+      
+
+      ncomp=option_count('/material_phase/is_multiphase_component')
+      nphase=size(state)-ncomp
+      call get_option('/geometry/mesh::VelocityMesh/from_mesh/mesh_shape/element_type', &
+           vel_element_type )
+
+      allocate(multistate(nphase))
+
+      sfield1=>extract_scalar_field(state(1),"Pressure")
+      call insert(multistate(1),sfield1,"Pressure")
+
+      call allocate(sfield2,sfield1%mesh,"FEPressure")
+      call insert(multistate(1),sfield2,"FEPressure")
+      call deallocate(sfield2)
+      call allocate(sfield2,sfield1%mesh,"OldFEPressure")
+      call insert(multistate(1),sfield2,"OldFEPressure")
+      call deallocate(sfield2)
+      call allocate(sfield2,sfield1%mesh,"CVPressure")
+      call insert (multistate(1),sfield2,"CVPressure")
+      call deallocate(sfield2)
+      call allocate(sfield2,sfield1%mesh,"OldCVPressure")
+      call insert (multistate(1),sfield2,"OldCVPressure")
+      call deallocate(sfield2)
+
+
+      call insert_sfield(multistate(1),multidensity,"Density")
+      call insert_sfield(multistate(1),multidensity,"Temperature")
+      call insert_sfield(multistate(1),multidensity,"PhaseVolumeFraction")
+
+      vfield1=>extract_vector_field(state(1),"Velocity")
+      vfield2=>extract_vector_field(state(1),"Coordinate")
+
+      call allocate(position,3,vfield2%mesh,"Coordinate")
+      lmesh=make_mesh(vfield2%mesh,vfield1%mesh%shape)
+      call allocate(u_position,3,lmesh,"VelocityCoordinate")
+      lmesh=make_mesh(vfield2%mesh,sfield1%mesh%shape)
+      call allocate(p_position,3,sfield1%mesh,"PressureCoordinate")
+      
+
+      ! hack to make false dimensions
+      
+      position%val(1:mesh_dim(vfield2),:)=vfield2%val
+      position%val(mesh_dim(vfield2)+1:3,:)=0
+
+      
+      call xp1_2_xp2(state,ele_loc(p_position,1),ele_loc(position,1),&
+           node_count(position),node_count(p_position),&
+           position%mesh%ndglno,p_position%mesh%ndglno,&
+           p_position%val(1,:),p_position%val(2,:),p_position%val(3,:))
+      call project_field( position, u_position, position )
+
+      call insert(multistate(1),position,"Coordinate")
+      call insert(multistate(1),p_position,"PressureCoordinate")
+      call insert(multistate(1),u_position,"VelocityCoordinate")
+      call deallocate(position)
+      call deallocate(p_position)
+      call deallocate(u_position)
+
+      if (trim(vel_element_type)=='overlapping') then
+         !overlapping
+         ovmesh=make_mesh(vfield2%mesh,vfield1%mesh%shape,&
+              vfield1%mesh%continuity,&
+              overlapping_shape=sfield1%mesh%shape)
+         call insert_vfield(multistate(1),multivelocity,"Velocity",ovmesh)
+         call insert_vfield(multistate(1),multivelocity,"NonlinearVelocity",ovmesh)
+      else
+         call insert_vfield(multistate(1),multivelocity,"Velocity")
+         call insert_vfield(multistate(1),multivelocity,"NonlinearVelocity")
+      end if
+
+      j=1
+      do i=1,size(state)
+         if(have_option(trim(state(i)%option_path)&
+              //'/is_multiphase_component')) then
+            vfield1=>extract_vector_field(state(i),"Velocity",stat)
+            if (stat==0) vfield1%wrapped=.true.
+            vfield1=>extract_vector_field(state(i),"OldVelocity",stat)
+            if (stat==0) vfield1%wrapped=.true.
+            vfield1=>extract_vector_field(state(i),"IteratedVelocity",stat)
+            if (stat==0) vfield1%wrapped=.true.
+            cycle
+         else
+            call pack_sfield(state(i),multistate(1),"Density",j)
+            call pack_sfield(state(i),multistate(1),"OldDensity",j)
+            call pack_sfield(state(i),multistate(1),"IteratedDensity",j)
+           
+
+            call pack_vfield(state(i),multistate(1),"Velocity",j)
+            call pack_vfield(state(i),multistate(1),"OldVelocity",j)
+            call pack_vfield(state(i),multistate(1),"IteratedVelocity",j)
+
+            j=j+1
+         end if
+      end do
+
+      contains
+
+        subroutine insert_sfield(mstate,mfield,name,nmesh)
+          type(state_type), intent(inout) :: mstate
+          character(len=*) :: name
+          type(vector_field), dimension(3), intent(inout) :: mfield
+          type(mesh_type),optional, target :: nmesh
+          
+
+          type(scalar_field), pointer :: nfield
+          type(mesh_type), pointer :: lmesh
+          integer :: stat
+
+          nfield=>extract_scalar_field(state(1),name,stat)
+          if (stat/=0) then
+             nfield=>extract_scalar_field(state(1),"Pressure",stat)
+          end if
+
+          if (present(nmesh)) then
+             lmesh=> nmesh
+          else
+             lmesh=>nfield%mesh
+          end if
+
+          call allocate(mfield(1),nphase,lmesh,"Packed"//name)
+          call insert(mstate,mfield(1),"Packed"//name)
+          call deallocate(mfield(1))
+          call allocate(mfield(2),nphase,lmesh,"PackedOld"//name)
+          call insert(mstate,mfield(2),"PackedOld"//name)
+          call deallocate(mfield(2))
+          call allocate(mfield(3),nphase,lmesh,"PackedIterated"//name)
+          call insert(mstate,mfield(3),"PackedIterated"//name)
+          call deallocate(mfield(3))
+
+        end subroutine insert_sfield
+
+        subroutine insert_vfield(mstate,mfield,name,nmesh)
+          type(state_type), intent(inout) :: mstate
+          character(len=*) :: name
+          type(vector_field), dimension(3), intent(inout) :: mfield
+          type(mesh_type), optional, target :: nmesh
+
+          type(vector_field), pointer :: nfield
+          type(mesh_type), pointer :: lmesh
+          integer :: ndim
+
+
+          nfield=>extract_vector_field(state(1),name)
+          if (present(nmesh)) then
+             lmesh=> nmesh
+          else
+             lmesh=>nfield%mesh
+          end if
+          ndim=3!nfield%dim
+          
+          call allocate(mfield(1),nphase*ndim,lmesh,"Packed"//name)
+          call insert(mstate,mfield(1),"Packed"//name)
+          call deallocate(mfield(1))
+          call allocate(mfield(2),nphase*ndim,lmesh,"PackedOld"//name)
+          call insert(mstate,mfield(2),"PackedOld"//name)
+          call deallocate(mfield(2))
+          call allocate(mfield(3),nphase*ndim,lmesh,"PackedIterated"//name)
+          call insert(mstate,mfield(3),"PackedIterated"//name)
+          call deallocate(mfield(3))
+
+        end subroutine insert_vfield
+
+        subroutine pack_sfield(nstate,mstate,name,iter)
+          type(state_type), intent(inout) :: nstate, mstate
+          character(len=*) :: name
+          integer :: iter
+
+          
+          type(scalar_field), pointer :: nfield
+          type(vector_field), pointer :: mfield
+
+          nfield=>extract_scalar_field(nstate,name)
+          mfield=>extract_vector_field(mstate,"Packed"//name)
+          mfield%val(j,:)=nfield%val(:)
+          deallocate(nfield%val)
+          nfield%val=>mfield%val(j,:)
+          nfield%wrapped=.true.
+
+        end subroutine pack_sfield
+
+        subroutine pack_vfield(nstate,mstate,name,iter)
+          type(state_type), intent(inout) :: nstate, mstate
+          character(len=*) :: name
+          integer :: iter
+
+          
+          type(vector_field), pointer :: nfield, mfield
+          integer :: ndim,rdim, nonods
+
+          nfield=>extract_vector_field(nstate,name)
+          mfield=>extract_vector_field(mstate,"Packed"//name)
+          ndim=nfield%dim
+          rdim=3
+          nonods=size(mfield%val,2)
+
+          mfield%val((iter-1)*rdim+1:rdim*(iter-1)+rdim,:)=0.0
+          mfield%val((iter-1)*rdim+1:rdim*(iter-1)+ndim,:)=nfield%val(:,1:nonods)
+#ifdef HAVE_MEMORY_STATS
+          call register_deallocation("vector_field", "real", &
+               size(nfield%val), name=nfield%name)
+#endif
+          deallocate(nfield%val)
+          nfield%val=>mfield%val((iter-1)*rdim+1:rdim*(iter-1)+ndim,:)
+          nfield%wrapped=.true.
+
+        end subroutine pack_vfield
+
+      end function pack_multistate
+
+    end module Copy_Outof_State
 

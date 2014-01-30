@@ -164,7 +164,7 @@ module fields_data_types
 
   type vector_field
      !! dim x nonods vector values
-     real, dimension(:,:), pointer :: val
+     real, dimension(:,:), pointer, contiguous :: val
      !! Flag for whether val is allocated
      logical :: wrapped = .true.
      !! The data source to be used
