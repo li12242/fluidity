@@ -43,11 +43,15 @@ tau_xy_R = nu_T*(diff(u,y) + diff(v,x))
 tau_yy_R = 2*nu_T*diff(v,y) - (2./3.)*ke
 tau_yx_R = nu_T*(diff(u,y) + diff(v,x))
 
+# diff(u,t)
 Su = u*diff(u,x) + v*diff(u,y) - diff(tau_xx, x) - diff(tau_xy, y) - diff(tau_xx_R, x) - diff(tau_xy_R, y) - g_x*rho + diff(p,x)  
+# diff(v,t)
 Sv = u*diff(v,x) + v*diff(v,y) - diff(tau_yx, x) - diff(tau_yy, y) - diff(tau_yx_R, x) - diff(tau_yy_R, y) - g_y*rho + diff(p,y)  
 
+# ???
 Srho = u*diff(rho,x) + v*diff(rho,y) - (1.0 + nu_T)*(diff(rho, x, x) + diff(rho, y, y)) - diff(nu_T, x)*diff(rho, x) - diff(nu_T, y)*diff(rho, y)
 
+# Re stress
 P = nu_T*(2*(diff(u,x)^2 + diff(v,y)^2 + diff(u,y)*diff(v,x)) + diff(u,y)^2 + diff(v,x)^2) - (2./3.)*ke*(diff(u,x) + diff(v,y))
 
 u_z = g_x*u + g_y*v
@@ -58,7 +62,9 @@ pr = 1.0
 ab = 1.0
 bo = 1.0
 
+# diff(ke,t)
 Ske = u*diff(ke,x) + v*diff(ke,y) - (nu + nu_T)*(diff(ke, x, x) + diff(ke, y, y)) - diff(nu_T, x)*diff(ke, x) -  diff(nu_T, y)*diff(ke, y) - pr*P + ab*eps - bo*B
+# diff(eps,t)
 Seps = u*diff(eps,x) + v*diff(eps,y) - (nu + nu_T)*(diff(eps, x, x) + diff(eps, y, y)) - diff(nu_T, x)*diff(eps, x) -  diff(nu_T, y)*diff(eps, y) - pr*(eps/ke)*P + ab*(eps^2/ke) - bo*C3*(eps/ke)*B
   
 print 'from math import sin, cos, tanh, pi'
@@ -96,25 +102,25 @@ print ''
 print 'def forcing_eps(X):'
 print '    return', str(Seps).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
-print 'def P_ke(X):'
+print 'def P_ke(X):' # production term in ke equation
 print '    return', str(P).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
-print 'def P_eps(X):'
+print 'def P_eps(X):' # production term in eps equation
 print '    return', str((eps/ke)*P).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
-print 'def A_ke(X):'
+print 'def A_ke(X):' # absorption term in ke equation
 print '    return', str(-eps).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
-print 'def A_eps(X):'
+print 'def A_eps(X):' # absorption term in eps equation
 print '    return', str(-eps^2.0/ke).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
-print 'def B_ke(X):'
+print 'def B_ke(X):' # buoyancy term in ke equation
 print '    return', str(B).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
-print 'def B_eps(X):'
+print 'def B_eps(X):' # buoyancy term in eps equation
 print '    return', str(C3*(eps/ke)*B).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
-print 'def EV(X):'
+print 'def EV(X):' # eddy viscosity
 print '    return', str(nu_T).replace('e^', 'exp').replace('^', '**').replace('000000000000', '').replace('x', 'X[0]').replace('y', 'X[1]')
 print ''
 print 'def velocity(X):'

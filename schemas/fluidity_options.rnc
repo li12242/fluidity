@@ -1391,6 +1391,314 @@ start =
                      ## ScalarEddyViscosity is still calculated as normal.
                      element zero_reynolds_stress_tensor{ empty }?
                   }?
+               }?,
+               ## Standard k-omega turbulence model (see Wilcox 1998).
+               ## Solves 2 additional equations for TurbulentFrequency (omega) and TurbulentKineticEnergy (k),
+               ## in order to close momentum equations.
+               ## Generates an isotropic 'eddy viscosity', added to molecular viscosity field, that
+               ## carries the influence of turbulence onto the velocity field. See the manual for details.
+               element k-omega {
+                  ## Turbulent kinetic energy (k).
+                  ## 1. 'k_esilon'-type boundary conditions are recommended for this field.
+                  ## 2. Turn on diffusivity, source and absorption diagnostic fields.
+                  ## 3. Use the same mesh as Velocity.
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "TurbulentKineticEnergy" },
+                     (
+                        element prognostic {
+                           velocity_mesh_choice,
+                           prognostic_scalar_field
+                        }|
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field
+                        }
+                     )
+                  },
+                  ## TurbulentFrequency (omega).
+                  ## 1. 'k_epsilon'-type boundary conditions are recommended for this field.
+                  ## 2. Turn on diffusivity, source and absorption diagnostic fields.
+                  ## 3. Use the same mesh as Velocity.
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "TurbulentFrequency" },
+                     (
+                        element prognostic {
+                           velocity_mesh_choice,
+                           prognostic_scalar_field
+                        }|
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field
+                        }
+                     )
+                  },
+                  ## Set the value of the background (laminar) viscosity field here.
+                  ## Make it small to see the influence of the eddy viscosity.
+                  ## IMPORTANT: make velocity/viscosity diagnostic.
+                  element tensor_field {
+                     attribute rank { "2" },
+                     attribute name { "BackgroundViscosity" },
+                     (
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_tensor_field
+                        }|
+                        element diagnostic {
+                           velocity_mesh_choice,
+                           (
+                              sediment_concentration_dependent_viscosity_algorithm
+                           ),
+                           diagnostic_tensor_field
+                        }
+                     )
+                  },
+                  ## Set the value of the background (laminar) diffusivity field here.
+                  ## This is used to calculate scalar field diffusivities.
+                  element tensor_field {
+                     attribute rank { "2" },
+                     attribute name { "BackgroundDiffusivity" },
+                     (
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_tensor_field
+                        }
+                     )
+                  }?,
+                  ## Eddy viscosity (turbulent diffusion of velocity).
+                  ## This is a fictitious isotropic viscosity, added to normal viscosity field, that
+                  ## carries the influence of turbulence onto the velocity field.
+                  element tensor_field {
+                     attribute rank { "2" },
+                     attribute name { "EddyViscosity" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_tensor_field
+                        }
+                     )
+                  },
+                  ## Scalar component of the eddy viscosity tensor.
+                  ## This will appear in the stat file.
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "ScalarEddyViscosity" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }|
+                        element prescribed {
+                           velocity_mesh_choice,
+                           prescribed_scalar_field
+                        }
+                     )
+                  },
+                  ## Integral length scale of the turbulence (diagnostic).
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "LengthScale" },
+                     (
+                        element diagnostic {
+                           internal_algorithm,
+                           velocity_mesh_choice,
+                           diagnostic_scalar_field
+                        }
+                     )
+                  },
+                  ## f_1 damping coefficient for low_Re k-epsilon model
+                  ## Required for low_Re boundaries. If no low_Re boundaries are present
+                  ## this will be set to 1.0 throughout the domain and will not
+                  ## affect the result
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "f_1" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field                        
+                     }
+                  },
+                  ## f_2 damping coefficient for low_Re k-epsilon model
+                  ## Required for low_Re boundaries. If no low_Re boundaries are present
+                  ## this will be set to 1.0 throughout the domain and will not
+                  ## affect the result
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "f_2" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field                        
+                     }
+                  },
+                  ## f_mu damping coefficient for low_Re k-epsilon model
+                  ## Required for low_Re boundaries. If no low_Re boundaries are present
+                  ## this will be set to 1.0 throughout the domain and will not
+                  ## affect the result
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "f_mu" },
+                     element diagnostic {
+                        internal_algorithm,
+                        velocity_mesh_choice,
+                        diagnostic_scalar_field                        
+                     }
+                  },
+                  ## Limit the maximum value of damping function values. This helps stability when using low_Re number
+                  ## boundary conditions. If not using low_Re boundaries this will have no effect. 
+                  ## Recommended value (default): 10.0
+                  element max_damping_value {real},
+                  ## Describes distance to nearest solid wall.
+                  ## Required for low_Re boundaries.
+                  ## For simple geometries the simplest method of providing this information is to use a python function.
+                  ## For complex geometries where this is not possible precursive Eikonal equation or Poisson equation
+                  ## simulations must be run using Fluidity to determine the values for this field.
+                  ## Details of how this is done can be found in:
+                  ## Tucker, P 2011: "Hybrid Hamilton/Jacobi/Poisson wall distance function model"
+                  ## Elias et al 2007: "Simple finite element-based computation of distance functions in unstructured grids"
+                  element scalar_field {
+                     attribute rank { "0" },
+                     attribute name { "DistanceToWall" },
+                     element prescribed {
+                        velocity_mesh_choice,
+                        prescribed_scalar_field
+                     }
+                  }?,
+                  ## Alpha.
+                  ## Recommended value (default): 5.0/9.0.
+                  element Alpha {real},
+                  ## Beta.
+                  ## Recommended value (default): 0.075.
+                  element Beta {real},
+                  ## Beta_Star.
+                  ## Recommended value (default): 0.09.
+                  element Beta_Star {real},
+                  ## Sigma.
+                  ## Recommended value (default): 0.5.
+                  element Sigma {real},
+                  ## Sigma_Star.
+                  ## Recommended value (default): 0.5.
+                  element Sigma_Star {real},
+                  ## Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
+                  ## Recommended value (default): 0.09.
+                  element C_mu {real},
+                  ## TurbulentFrequency production coefficient.
+                  ## Recommended value (default): 1.44.
+                  element time_discretisation {  
+                     ## Implicit/explicit control (THETA) of source terms and eddy viscosity in
+                     ## the k-epsilon model
+                     ##  = 0.  -- explicit
+                     ##  = 0.5 -- Crank-Nicolson
+                     ##  = 1.  -- implicit
+                     element theta {real},
+                     ## Each term in the k and epsilon equations can be implemented as either a 
+                     ## source or as an absorbtion term. See the manual under 
+                     ## 'Parameterisations/Turbulent flow modelling and simulation/Reynolds Averaged Navier Stokes (RANS) Modelling/Standard k − ε Turbulence Model/Time Discretisation and Coupling' 
+                     ## for more information.
+                     element source_term_implementation { 
+                        element production_term { 'source'|'absorbtion' },
+                        element destruction_term { 'source'|'absorbtion' }
+                     }
+                  },
+                  ## The source terms in the k-epsilon model are calculated before the field is 
+                  ## solved. The process requires inversion of a mass matrix. This element contains
+                  ## options for defining how this is done. For P1 meshes mass lumping can be used,
+                  ## for other discretisations the mass matrix can not be easily inverted and so a 
+                  ## solve must be carried out, with solver options specified.
+                  element mass_terms {  
+                     (
+                        element lump_mass { empty }
+                        |
+                        element use_consistent_mass_matrix { 
+                           element solver {
+                              linear_solver_options_asym_scalar
+                           }
+                        }                     
+                     )
+                  },
+                  ## produce vtu output of individual kk and eps source terms and set prescribed 
+                  ## source terms for k and epsilon fields (for mms tests)
+                  element debugging_options{
+                     ## output fields for each of the source terms in the k-epsilon model
+                     element source_term_output_fields{
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentKineticEnergy_production_term" },
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field                        
+                           }
+                        }?,
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentKineticEnergy_destruction_term" },
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field                        
+                           }
+                        }?,
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentFrequency_production_term" },
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field                        
+                           }
+                        }?,
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentFrequency_destruction_term" },
+                           element diagnostic {
+                              internal_algorithm,
+                              velocity_mesh_choice,
+                              diagnostic_scalar_field                        
+                           }
+                        }?
+                     },
+                     ## Enable to apply prescribed source terms into the k and epsilon equations.
+                     ## This is useful for MMS tests
+                     element prescribed_source_terms{
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentKineticEnergyPrescribedSource" },
+                           element prescribed {
+                              velocity_mesh_choice,
+                              prescribed_scalar_field                        
+                           }
+                        }?,
+                        element scalar_field {
+                           attribute rank { "0" },
+                           attribute name { "TurbulentFrequencyPrescribedSource" },
+                           element prescribed {
+                              velocity_mesh_choice,
+                              prescribed_scalar_field                        
+                           }
+                        }?
+                     },
+                     ## enabling this option disables the production term in the k and epsilon equations
+                     element disable_production_term{ empty }?,
+                     ## enabling this option disables the destruction term in the k and epsilon equation
+                     element disable_destruction_term{ empty }?,
+                     ## enabling this option enables the low-Re number damping functions regardless of whether there is
+                     ## a low-Re boundary condition
+                     element enable_lowRe_damping{ empty }?,
+                     ## Enabling this option disables feedback from the k-epsilon model back into 
+                     ## the rest of the model. Reynolds stress tensor is set to zero by zeroing 
+                     ## EddyViscosity and the added source term, based on k, in the momentum equation.
+                     ## Hence, Viscosity will always stay as the BackgroundViscosity,
+                     ## diffusivities will remain at the relevant BackgroundDiffusivity, and the 
+                     ## momentum equation will be as if there were no turbulence model present. 
+                     ## 
+                     ## ScalarEddyViscosity is still calculated as normal.
+                     element zero_reynolds_stress_tensor{ empty }?
+                  }?
                }?
             }?,
             ## Pressure
@@ -1918,13 +2226,10 @@ sediment =
                ##
                ## As with the sinking velocity, this velocity is in the direction of gravity so if the substance
                ## floats upwards, this field should be negative.
-               ##
-               ## This should be on the same mesh as the associated SinkingVelocity field.
                element scalar_field {
                   attribute name { "UnhinderedSinkingVelocity" },
                   attribute rank { "0" },
                   element prescribed {
-                     velocity_mesh_choice,
                      prescribed_scalar_field
                   }
                }?,
@@ -2692,31 +2997,6 @@ velocity_boundary_conditions =
          element type {
            attribute name { "free_surface" },
            (
-              ## The default free_surface implements the physical boundary
-              ## condition p=0 (this is full pressure without subtracting the hydrostatic component)
-              ## For viscous fluids the correct boundary condition is a no normal
-              ## stress condition, which includes a viscosity term. When using
-              ## this option a prognostic FreeSurface field is required.
-              element no_normal_stress {
-                 ## Treat the free surface evolution equation separately from the momentum equation.  
-                 ## i.e. stagger the solves.
-                 ##
-                 ## Requires a prognostic FreeSurface field.
-                 element explicit {
-                   empty
-                 }?
-              }?,
-              ## When selected the density at the surface is calculated using the Density field.  Therefore
-              ## this requires a Density field!
-              element variable_density {
-                 empty
-              }?,
-              ## When selected a hydrostatic pressure distribution on the outside is assumed
-              ## using the specified density, i.e. instead of applying p=0 (resp.
-              ## normal_stress=0) we apply p=p_external (resp. normal_stress=p_external) where p_external is determined by dp_external/dz=external_density*g
-              element external_density {
-                 real
-              }?,
               ## This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
               ## Note: Once activated, the stabilisation term will occur in all free surface areas in the domain. 
               ## IN DEVELOPMENT
@@ -3111,20 +3391,15 @@ prognostic_velocity_stat_options.stat &=
       element nonlinear_field {
          vector_field_stat_options_disabled_default
       },
+      ## What surface IDs do you want to do the calculation over?
       element compute_body_forces_on_surfaces {
-        attribute name { xsd:string },
-        (
-          ## What surface IDs do you want to do the calculation over?
-          element surface_ids {
-            integer_vector
-          },
-          ## Enable to output the pressure and viscous terms separately (as well
-          ## as the total force)
-          element output_terms {
-             comment
-          }?
-        )
-      }*,
+         ## Enable to output the pressure and viscous terms separately (as well
+         ## as the total force)
+         element output_terms {
+            comment
+         }?,
+         integer_vector
+      }?,
       ## Compute the divergence of this field at the Gauss points
       ## and return its stats.  This is a direct measure of the
       ## divergence at the gauss points rather than a discrete measure
@@ -3421,10 +3696,10 @@ scalar_field_choice =
             )
          }|
          ## Free Surface
-         ## Use in combination with a free_surface boundary condition on velocity
-         ## Without the no_normal_stress option, this field should be diagnostic
-         ## and is optional. With the no_normal_stress option this field is required
-         ## and should be prognostic.
+         ## NOTE: if you are using the free_surface boundary condition
+         ## applied to the Velocity field (recommended), you should not 
+         ## use the prognostic FreeSurface field. In this case you may 
+         ## (optionally) add a diagnostic FreeSurface field.
          element scalar_field {
             attribute rank { "0" },
             attribute name { "FreeSurface" },
@@ -3440,52 +3715,12 @@ scalar_field_choice =
                ## Pressure by g, the gravitational constant.
                element diagnostic {
                   internal_algorithm,
+                  # this is hard-coded on the PressureMesh as long as the Pressure is
+                  # if this is no longer true, it should be option-checked to be on the
+                  # same mesh as Pressure
                   ## Must be on the same mesh as Pressure
                   pressure_mesh_choice,
                   diagnostic_scalar_field
-               }|
-               ## Free Surface
-               ## NOTE: the prognostic FreeSurface field only works in combination
-               ## with the free_surface boundary condition applied to the Velocity
-               ## field in combination with the no_normal_stress_option.
-               ## It gives you a full dimensional field (constant over the vertical)
-               ## of the free surface elevation. Initial and boundary conditions
-               ## for free surface should be set on this field.
-               element prognostic {
-                  ## Must be on the same mesh as Pressure
-                  pressure_mesh_choice,
-                  (
-                     ## Initial condition for WholeMesh
-                     ##
-                     ## Only specify one condition if not using mesh regions.
-                     ## Otherwise select other initial_condition option, specify region_ids
-                     ## and distinct names.  Then add extra intial conditions for other regions.
-                     element initial_condition {
-                        attribute name { "WholeMesh" },
-                        input_choice_initial_condition_real
-                     }|
-                     ## Multiple initial_conditions are allowed if specifying
-                     ## different values in different
-                     ## regions of the mesh (defined by region_ids).  In this case
-                     ## each initial_condition
-                     ## requires a distinct name for the options dictionary.
-                     element initial_condition {
-                        attribute name { string },
-                        region_ids?,
-                        input_choice_initial_condition_real
-                     }
-                  )+,
-                  ## Solver - only necessary in combination with an explicit no_normal_stress free_surface bc under Velocity.
-                  element solver {
-                     linear_solver_options_sym
-                  },
-                  prognostic_scalar_output_options,
-                  prognostic_scalar_stat_options,
-                  scalar_convergence_options,
-                  prognostic_detector_options,
-                  scalar_steady_state_options,
-                  adaptivity_options_prognostic_scalar_field,
-                  interpolation_algorithm_scalar
                }
                
             )
@@ -5755,11 +5990,6 @@ tensor_field_choice =
                   mesh_choice,
                   prescribed_tensor_field
                }|
-               element diagnostic {
-                  mesh_choice,
-                  tensor_python_diagnostic_algorithm,
-                  diagnostic_tensor_field
-               }|
                element aliased {
                   generic_aliased_field
                }
@@ -6718,64 +6948,7 @@ forcing =
         element tidal_forcing {
                ## M2
                element M2 {
-                 ## Ancient frequencies:
-                 ##
-                 ## Ma     Frequency
-                 ##
-                 ## 0        1.405e-4
-                 ##
-                 ## 10      1.408e-4
-                 ##
-                 ## 50      1.416e-4
-                 ##
-                 ## 100    1.423e-4
-                 ##
-                 ## 200    1.428e-4
-                 ##
-                 ## 300    1.431e-4
-                 ##
-                 ## 350    1.434e-4
-                 ##
-                 ## 400    1.436e-4
-                 ##
-                 ## 450    1.441e-4
-                 ##
-                 ## 500    1.451e-4
-                 ##
-                 ## 570    1.469e-4
-                 ##
-                 ## From Poliakow,2005
-                 element frequency {
-                    real
-                  }?,
-                 ## Ma     Amplitude
-                 ##
-                 ## 0        0.2423
-                 ##
-                 ## 10      0.2428
-                 ##
-                 ## 50      0.2446
-                 ##
-                 ## 100    0.2460
-                 ##
-                 ## 200    0.2471
-                 ##
-                 ## 300    0.2477
-                 ##
-                 ## 350    0.2485
-                 ##
-                 ## 400    0.2489
-                 ##
-                 ## 450    0.2499
-                 ##
-                 ## 500    0.2521
-                 ##
-                 ## 570    0.2560
-                 ##
-                 ## From Poliakow,2005
-                 element amplitude {
-                    real
-                 }?
+                 empty
                }?,
                ## S2
                element S2 {
@@ -6822,24 +6995,11 @@ forcing =
                   empty
                }?,
                ## Sets a user defined Love number. If not active a value of 1.0 is used.
-               ## Recommended value is 0.693
                element love_number {
                   element value {
                      real
                   }
-               }?,
-               ## Self attraction and loading term (SAL). This is a simple implementation
-               ## that uses a constant beta value
-               element sal {
-                element beta {
-                    real
-                }
-              }?,
-              ## Add the CHI term to the harmonics. You probably only want to do this is you're simulating a specific time
-              element chi {
-                empty
-              }?
-
+               }?
         }?
     }
   )

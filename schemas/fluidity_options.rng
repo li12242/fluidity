@@ -1843,6 +1843,437 @@ ScalarEddyViscosity is still calculated as normal.</a:documentation>
                   </optional>
                 </element>
               </optional>
+              <optional>
+                <element name="k-omega">
+                  <a:documentation>Standard k-omega turbulence model (see Wilcox 1998).
+Solves 2 additional equations for TurbulentFrequency (omega) and TurbulentKineticEnergy (k),
+in order to close momentum equations.
+Generates an isotropic 'eddy viscosity', added to molecular viscosity field, that
+carries the influence of turbulence onto the velocity field. See the manual for details.</a:documentation>
+                  <element name="scalar_field">
+                    <a:documentation>Turbulent kinetic energy (k).
+1. 'k_esilon'-type boundary conditions are recommended for this field.
+2. Turn on diffusivity, source and absorption diagnostic fields.
+3. Use the same mesh as Velocity.</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>TurbulentKineticEnergy</value>
+                    </attribute>
+                    <choice>
+                      <element name="prognostic">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prognostic_scalar_field"/>
+                      </element>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prescribed_scalar_field"/>
+                      </element>
+                    </choice>
+                  </element>
+                  <element name="scalar_field">
+                    <a:documentation>TurbulentFrequency (omega).
+1. 'k_epsilon'-type boundary conditions are recommended for this field.
+2. Turn on diffusivity, source and absorption diagnostic fields.
+3. Use the same mesh as Velocity.</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>TurbulentFrequency</value>
+                    </attribute>
+                    <choice>
+                      <element name="prognostic">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prognostic_scalar_field"/>
+                      </element>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prescribed_scalar_field"/>
+                      </element>
+                    </choice>
+                  </element>
+                  <element name="tensor_field">
+                    <a:documentation>Set the value of the background (laminar) viscosity field here.
+Make it small to see the influence of the eddy viscosity.
+IMPORTANT: make velocity/viscosity diagnostic.</a:documentation>
+                    <attribute name="rank">
+                      <value>2</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>BackgroundViscosity</value>
+                    </attribute>
+                    <choice>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prescribed_tensor_field"/>
+                      </element>
+                      <element name="diagnostic">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="sediment_concentration_dependent_viscosity_algorithm"/>
+                        <ref name="diagnostic_tensor_field"/>
+                      </element>
+                    </choice>
+                  </element>
+                  <optional>
+                    <element name="tensor_field">
+                      <a:documentation>Set the value of the background (laminar) diffusivity field here.
+This is used to calculate scalar field diffusivities.</a:documentation>
+                      <attribute name="rank">
+                        <value>2</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>BackgroundDiffusivity</value>
+                      </attribute>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prescribed_tensor_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <element name="tensor_field">
+                    <a:documentation>Eddy viscosity (turbulent diffusion of velocity).
+This is a fictitious isotropic viscosity, added to normal viscosity field, that
+carries the influence of turbulence onto the velocity field.</a:documentation>
+                    <attribute name="rank">
+                      <value>2</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>EddyViscosity</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_tensor_field"/>
+                    </element>
+                  </element>
+                  <element name="scalar_field">
+                    <a:documentation>Scalar component of the eddy viscosity tensor.
+This will appear in the stat file.</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>ScalarEddyViscosity</value>
+                    </attribute>
+                    <choice>
+                      <element name="diagnostic">
+                        <ref name="internal_algorithm"/>
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="diagnostic_scalar_field"/>
+                      </element>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prescribed_scalar_field"/>
+                      </element>
+                    </choice>
+                  </element>
+                  <element name="scalar_field">
+                    <a:documentation>Integral length scale of the turbulence (diagnostic).</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>LengthScale</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
+                  <element name="scalar_field">
+                    <a:documentation>f_1 damping coefficient for low_Re k-epsilon model
+Required for low_Re boundaries. If no low_Re boundaries are present
+this will be set to 1.0 throughout the domain and will not
+affect the result</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>f_1</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
+                  <element name="scalar_field">
+                    <a:documentation>f_2 damping coefficient for low_Re k-epsilon model
+Required for low_Re boundaries. If no low_Re boundaries are present
+this will be set to 1.0 throughout the domain and will not
+affect the result</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>f_2</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
+                  <element name="scalar_field">
+                    <a:documentation>f_mu damping coefficient for low_Re k-epsilon model
+Required for low_Re boundaries. If no low_Re boundaries are present
+this will be set to 1.0 throughout the domain and will not
+affect the result</a:documentation>
+                    <attribute name="rank">
+                      <value>0</value>
+                    </attribute>
+                    <attribute name="name">
+                      <value>f_mu</value>
+                    </attribute>
+                    <element name="diagnostic">
+                      <ref name="internal_algorithm"/>
+                      <ref name="velocity_mesh_choice"/>
+                      <ref name="diagnostic_scalar_field"/>
+                    </element>
+                  </element>
+                  <element name="max_damping_value">
+                    <a:documentation>Limit the maximum value of damping function values. This helps stability when using low_Re number
+boundary conditions. If not using low_Re boundaries this will have no effect. 
+Recommended value (default): 10.0</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <optional>
+                    <element name="scalar_field">
+                      <a:documentation>Describes distance to nearest solid wall.
+Required for low_Re boundaries.
+For simple geometries the simplest method of providing this information is to use a python function.
+For complex geometries where this is not possible precursive Eikonal equation or Poisson equation
+simulations must be run using Fluidity to determine the values for this field.
+Details of how this is done can be found in:
+Tucker, P 2011: "Hybrid Hamilton/Jacobi/Poisson wall distance function model"
+Elias et al 2007: "Simple finite element-based computation of distance functions in unstructured grids"</a:documentation>
+                      <attribute name="rank">
+                        <value>0</value>
+                      </attribute>
+                      <attribute name="name">
+                        <value>DistanceToWall</value>
+                      </attribute>
+                      <element name="prescribed">
+                        <ref name="velocity_mesh_choice"/>
+                        <ref name="prescribed_scalar_field"/>
+                      </element>
+                    </element>
+                  </optional>
+                  <element name="Alpha">
+                    <a:documentation>Alpha.
+Recommended value (default): 5.0/9.0.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="Beta">
+                    <a:documentation>Beta.
+Recommended value (default): 0.075.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="Beta_Star">
+                    <a:documentation>Beta_Star.
+Recommended value (default): 0.09.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="Sigma">
+                    <a:documentation>Sigma.
+Recommended value (default): 0.5.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="Sigma_Star">
+                    <a:documentation>Sigma_Star.
+Recommended value (default): 0.5.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="C_mu">
+                    <a:documentation>Eddy-viscosity coefficient: nu_T = density * C_mu * k**2 / epsilon.
+Recommended value (default): 0.09.</a:documentation>
+                    <ref name="real"/>
+                  </element>
+                  <element name="time_discretisation">
+                    <a:documentation>TurbulentFrequency production coefficient.
+Recommended value (default): 1.44.</a:documentation>
+                    <element name="theta">
+                      <a:documentation>Implicit/explicit control (THETA) of source terms and eddy viscosity in
+the k-epsilon model
+ = 0.  -- explicit
+ = 0.5 -- Crank-Nicolson
+ = 1.  -- implicit</a:documentation>
+                      <ref name="real"/>
+                    </element>
+                    <element name="source_term_implementation">
+                      <a:documentation>Each term in the k and epsilon equations can be implemented as either a 
+source or as an absorbtion term. See the manual under 
+'Parameterisations/Turbulent flow modelling and simulation/Reynolds Averaged Navier Stokes (RANS) Modelling/Standard k − ε Turbulence Model/Time Discretisation and Coupling' 
+for more information.</a:documentation>
+                      <element name="production_term">
+                        <choice>
+                          <value>source</value>
+                          <value>absorbtion</value>
+                        </choice>
+                      </element>
+                      <element name="destruction_term">
+                        <choice>
+                          <value>source</value>
+                          <value>absorbtion</value>
+                        </choice>
+                      </element>
+                    </element>
+                  </element>
+                  <element name="mass_terms">
+                    <a:documentation>The source terms in the k-epsilon model are calculated before the field is 
+solved. The process requires inversion of a mass matrix. This element contains
+options for defining how this is done. For P1 meshes mass lumping can be used,
+for other discretisations the mass matrix can not be easily inverted and so a 
+solve must be carried out, with solver options specified.</a:documentation>
+                    <choice>
+                      <element name="lump_mass">
+                        <empty/>
+                      </element>
+                      <element name="use_consistent_mass_matrix">
+                        <element name="solver">
+                          <ref name="linear_solver_options_asym_scalar"/>
+                        </element>
+                      </element>
+                    </choice>
+                  </element>
+                  <optional>
+                    <element name="debugging_options">
+                      <a:documentation>produce vtu output of individual kk and eps source terms and set prescribed 
+source terms for k and epsilon fields (for mms tests)</a:documentation>
+                      <element name="source_term_output_fields">
+                        <a:documentation>output fields for each of the source terms in the k-epsilon model</a:documentation>
+                        <optional>
+                          <element name="scalar_field">
+                            <attribute name="rank">
+                              <value>0</value>
+                            </attribute>
+                            <attribute name="name">
+                              <value>TurbulentKineticEnergy_production_term</value>
+                            </attribute>
+                            <element name="diagnostic">
+                              <ref name="internal_algorithm"/>
+                              <ref name="velocity_mesh_choice"/>
+                              <ref name="diagnostic_scalar_field"/>
+                            </element>
+                          </element>
+                        </optional>
+                        <optional>
+                          <element name="scalar_field">
+                            <attribute name="rank">
+                              <value>0</value>
+                            </attribute>
+                            <attribute name="name">
+                              <value>TurbulentKineticEnergy_destruction_term</value>
+                            </attribute>
+                            <element name="diagnostic">
+                              <ref name="internal_algorithm"/>
+                              <ref name="velocity_mesh_choice"/>
+                              <ref name="diagnostic_scalar_field"/>
+                            </element>
+                          </element>
+                        </optional>
+                        <optional>
+                          <element name="scalar_field">
+                            <attribute name="rank">
+                              <value>0</value>
+                            </attribute>
+                            <attribute name="name">
+                              <value>TurbulentFrequency_production_term</value>
+                            </attribute>
+                            <element name="diagnostic">
+                              <ref name="internal_algorithm"/>
+                              <ref name="velocity_mesh_choice"/>
+                              <ref name="diagnostic_scalar_field"/>
+                            </element>
+                          </element>
+                        </optional>
+                        <optional>
+                          <element name="scalar_field">
+                            <attribute name="rank">
+                              <value>0</value>
+                            </attribute>
+                            <attribute name="name">
+                              <value>TurbulentFrequency_destruction_term</value>
+                            </attribute>
+                            <element name="diagnostic">
+                              <ref name="internal_algorithm"/>
+                              <ref name="velocity_mesh_choice"/>
+                              <ref name="diagnostic_scalar_field"/>
+                            </element>
+                          </element>
+                        </optional>
+                      </element>
+                      <element name="prescribed_source_terms">
+                        <a:documentation>Enable to apply prescribed source terms into the k and epsilon equations.
+This is useful for MMS tests</a:documentation>
+                        <optional>
+                          <element name="scalar_field">
+                            <attribute name="rank">
+                              <value>0</value>
+                            </attribute>
+                            <attribute name="name">
+                              <value>TurbulentKineticEnergyPrescribedSource</value>
+                            </attribute>
+                            <element name="prescribed">
+                              <ref name="velocity_mesh_choice"/>
+                              <ref name="prescribed_scalar_field"/>
+                            </element>
+                          </element>
+                        </optional>
+                        <optional>
+                          <element name="scalar_field">
+                            <attribute name="rank">
+                              <value>0</value>
+                            </attribute>
+                            <attribute name="name">
+                              <value>TurbulentFrequencyPrescribedSource</value>
+                            </attribute>
+                            <element name="prescribed">
+                              <ref name="velocity_mesh_choice"/>
+                              <ref name="prescribed_scalar_field"/>
+                            </element>
+                          </element>
+                        </optional>
+                      </element>
+                      <optional>
+                        <element name="disable_production_term">
+                          <a:documentation>enabling this option disables the production term in the k and epsilon equations</a:documentation>
+                          <empty/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="disable_destruction_term">
+                          <a:documentation>enabling this option disables the destruction term in the k and epsilon equation</a:documentation>
+                          <empty/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="enable_lowRe_damping">
+                          <a:documentation>enabling this option enables the low-Re number damping functions regardless of whether there is
+a low-Re boundary condition</a:documentation>
+                          <empty/>
+                        </element>
+                      </optional>
+                      <optional>
+                        <element name="zero_reynolds_stress_tensor">
+                          <a:documentation>Enabling this option disables feedback from the k-epsilon model back into 
+the rest of the model. Reynolds stress tensor is set to zero by zeroing 
+EddyViscosity and the added source term, based on k, in the momentum equation.
+Hence, Viscosity will always stay as the BackgroundViscosity,
+diffusivities will remain at the relevant BackgroundDiffusivity, and the 
+momentum equation will be as if there were no turbulence model present. 
+
+ScalarEddyViscosity is still calculated as normal.</a:documentation>
+                          <empty/>
+                        </element>
+                      </optional>
+                    </element>
+                  </optional>
+                </element>
+              </optional>
             </element>
           </optional>
           <optional>
@@ -2681,9 +3112,7 @@ This uses the equation developed by Richardson and Zaki [1954].
 If the 'SinkingVelocity' is not set to diagnostic, this field will not be used.
 
 As with the sinking velocity, this velocity is in the direction of gravity so if the substance
-floats upwards, this field should be negative.
-
-This should be on the same mesh as the associated SinkingVelocity field.</a:documentation>
+floats upwards, this field should be negative.</a:documentation>
                 <attribute name="name">
                   <value>UnhinderedSinkingVelocity</value>
                 </attribute>
@@ -2691,7 +3120,6 @@ This should be on the same mesh as the associated SinkingVelocity field.</a:docu
                   <value>0</value>
                 </attribute>
                 <element name="prescribed">
-                  <ref name="velocity_mesh_choice"/>
                   <ref name="prescribed_scalar_field"/>
                 </element>
               </element>
@@ -3619,52 +4047,17 @@ on the Velocity field.</a:documentation>
         <attribute name="name">
           <value>free_surface</value>
         </attribute>
-        <group>
-          <optional>
-            <element name="no_normal_stress">
-              <a:documentation>The default free_surface implements the physical boundary
-condition p=0 (this is full pressure without subtracting the hydrostatic component)
-For viscous fluids the correct boundary condition is a no normal
-stress condition, which includes a viscosity term. When using
-this option a prognostic FreeSurface field is required.</a:documentation>
-              <optional>
-                <element name="explicit">
-                  <a:documentation>Treat the free surface evolution equation separately from the momentum equation.  
-i.e. stagger the solves.
-
-Requires a prognostic FreeSurface field.</a:documentation>
-                  <empty/>
-                </element>
-              </optional>
-            </element>
-          </optional>
-          <optional>
-            <element name="variable_density">
-              <a:documentation>When selected the density at the surface is calculated using the Density field.  Therefore
-this requires a Density field!</a:documentation>
-              <empty/>
-            </element>
-          </optional>
-          <optional>
-            <element name="external_density">
-              <a:documentation>When selected a hydrostatic pressure distribution on the outside is assumed
-using the specified density, i.e. instead of applying p=0 (resp.
-normal_stress=0) we apply p=p_external (resp. normal_stress=p_external) where p_external is determined by dp_external/dz=external_density*g</a:documentation>
-              <ref name="real"/>
-            </element>
-          </optional>
-          <optional>
-            <element name="surface_stabilisation">
-              <a:documentation>This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
+        <optional>
+          <element name="surface_stabilisation">
+            <a:documentation>This options adds a surface stabilisation term to the free surface. Works only for cg velocity so far. 
 Note: Once activated, the stabilisation term will occur in all free surface areas in the domain. 
 IN DEVELOPMENT</a:documentation>
-              <element name="scale_factor">
-                <a:documentation>Scale factor for the surface stabilisation.</a:documentation>
-                <ref name="real"/>
-              </element>
+            <element name="scale_factor">
+              <a:documentation>Scale factor for the surface stabilisation.</a:documentation>
+              <ref name="real"/>
             </element>
-          </optional>
-        </group>
+          </element>
+        </optional>
       </element>
       <element name="type">
         <a:documentation>Apply quadratic drag. Specify drag coefficient. If you
@@ -4127,26 +4520,19 @@ iteration in the .stat file.</a:documentation>
       <a:documentation>Specify how the values of this field used in the nonlinear iteration are added to the .stat file.</a:documentation>
       <ref name="vector_field_stat_options_disabled_default"/>
     </element>
-    <zeroOrMore>
+    <optional>
       <element name="compute_body_forces_on_surfaces">
-        <attribute name="name">
-          <data type="string"/>
-        </attribute>
-        <group>
-          <element name="surface_ids">
-            <a:documentation>What surface IDs do you want to do the calculation over?</a:documentation>
-            <ref name="integer_vector"/>
-          </element>
-          <optional>
-            <element name="output_terms">
-              <a:documentation>Enable to output the pressure and viscous terms separately (as well
+        <a:documentation>What surface IDs do you want to do the calculation over?</a:documentation>
+        <optional>
+          <element name="output_terms">
+            <a:documentation>Enable to output the pressure and viscous terms separately (as well
 as the total force)</a:documentation>
-              <ref name="comment"/>
-            </element>
-          </optional>
-        </group>
+            <ref name="comment"/>
+          </element>
+        </optional>
+        <ref name="integer_vector"/>
       </element>
-    </zeroOrMore>
+    </optional>
     <optional>
       <element name="divergence_stats">
         <a:documentation>Compute the divergence of this field at the Gauss points
@@ -4462,10 +4848,10 @@ i.e. excluding the components</a:documentation>
       </element>
       <element name="scalar_field">
         <a:documentation>Free Surface
-Use in combination with a free_surface boundary condition on velocity
-Without the no_normal_stress option, this field should be diagnostic
-and is optional. With the no_normal_stress option this field is required
-and should be prognostic.</a:documentation>
+NOTE: if you are using the free_surface boundary condition
+applied to the Velocity field (recommended), you should not 
+use the prognostic FreeSurface field. In this case you may 
+(optionally) add a diagnostic FreeSurface field.</a:documentation>
         <attribute name="rank">
           <value>0</value>
         </attribute>
@@ -7287,11 +7673,6 @@ in a multimaterial simulation.</a:documentation>
             <ref name="mesh_choice"/>
             <ref name="prescribed_tensor_field"/>
           </element>
-          <element name="diagnostic">
-            <ref name="mesh_choice"/>
-            <ref name="tensor_python_diagnostic_algorithm"/>
-            <ref name="diagnostic_tensor_field"/>
-          </element>
           <element name="aliased">
             <ref name="generic_aliased_field"/>
           </element>
@@ -8503,68 +8884,7 @@ These &lt;b&gt;must&lt;/b&gt; be on the velocity mesh</a:documentation>
           <optional>
             <element name="M2">
               <a:documentation>M2</a:documentation>
-              <optional>
-                <element name="frequency">
-                  <a:documentation>Ancient frequencies:
-
-Ma     Frequency
-
-0        1.405e-4
-
-10      1.408e-4
-
-50      1.416e-4
-
-100    1.423e-4
-
-200    1.428e-4
-
-300    1.431e-4
-
-350    1.434e-4
-
-400    1.436e-4
-
-450    1.441e-4
-
-500    1.451e-4
-
-570    1.469e-4
-
-From Poliakow,2005</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
-              <optional>
-                <element name="amplitude">
-                  <a:documentation>Ma     Amplitude
-
-0        0.2423
-
-10      0.2428
-
-50      0.2446
-
-100    0.2460
-
-200    0.2471
-
-300    0.2477
-
-350    0.2485
-
-400    0.2489
-
-450    0.2499
-
-500    0.2521
-
-570    0.2560
-
-From Poliakow,2005</a:documentation>
-                  <ref name="real"/>
-                </element>
-              </optional>
+              <empty/>
             </element>
           </optional>
           <optional>
@@ -8635,26 +8955,10 @@ From Poliakow,2005</a:documentation>
           </optional>
           <optional>
             <element name="love_number">
-              <a:documentation>Sets a user defined Love number. If not active a value of 1.0 is used.
-Recommended value is 0.693</a:documentation>
+              <a:documentation>Sets a user defined Love number. If not active a value of 1.0 is used.</a:documentation>
               <element name="value">
                 <ref name="real"/>
               </element>
-            </element>
-          </optional>
-          <optional>
-            <element name="sal">
-              <a:documentation>Self attraction and loading term (SAL). This is a simple implementation
-that uses a constant beta value</a:documentation>
-              <element name="beta">
-                <ref name="real"/>
-              </element>
-            </element>
-          </optional>
-          <optional>
-            <element name="chi">
-              <a:documentation>Add the CHI term to the harmonics. You probably only want to do this is you're simulating a specific time</a:documentation>
-              <empty/>
             </element>
           </optional>
         </element>

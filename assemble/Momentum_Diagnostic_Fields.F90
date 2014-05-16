@@ -39,6 +39,7 @@ module momentum_diagnostic_fields
   use multiphase_module
   use diagnostic_fields_wrapper_new
   use k_epsilon
+  use k_omega !Amin!
   use initialise_fields_module
   implicit none
 
@@ -182,6 +183,13 @@ contains
     if(have_option(trim(state(istate)%option_path)//&
          "/subgridscale_parameterisations/k-epsilon")) then
        call keps_momentum_diagnostics(state(istate))
+    end if
+
+    ! k-omega momentum diagnostics (reynolds stress tensor) !Amin!
+    if(have_option(trim(state(istate)%option_path)//&
+         "/subgridscale_parameterisations/k-omega")) then
+       ewrite(1,*) "Amin has another go at k-omega" !Amin!
+       call komega_momentum_diagnostics(state(istate))
     end if
 
     ewrite(1,*) 'Exiting calculate_momentum_diagnostics'
