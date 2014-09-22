@@ -58,6 +58,7 @@ module populate_state_module
   use fields_halos
   use read_triangle
   use initialise_ocean_forcing_module
+  use dmplex_reader
 
   implicit none
 
@@ -243,7 +244,9 @@ contains
           if (is_active_process) then
             select case (mesh_file_format)
             case("dmplex_exodusii")
-               FLExit("DMPlex-ExodusII reader not yet implemented")
+               position = dmplex_read_exodusii_file(trim(mesh_file_name), &
+                    quad_degree=quad_degree, quad_family=quad_family)
+               mesh=position%mesh
             case ("triangle", "gmsh", "exodusii")
               ! Get mesh dimension if present
               call get_option(trim(mesh_path)//"/from_file/dimension", mdim, stat)
