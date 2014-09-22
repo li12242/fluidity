@@ -29,6 +29,14 @@ mesh_info =
             element format {
                attribute name { "exodusii" },
                comment
+            }|
+            ## ExodusII mesh format via PETSc's DMPlex.
+            ##
+            ## The DMPlex interface provides on-the-fly domain decomposition
+            ## so no fldecopmp/flredecomp pre-processing is required.
+            element format {
+               attribute name { "dmplex_exodusii" },
+               comment
             }
          ),
          attribute file_name { xsd:string },

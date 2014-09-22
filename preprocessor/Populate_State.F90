@@ -242,6 +242,8 @@ contains
 
           if (is_active_process) then
             select case (mesh_file_format)
+            case("dmplex_exodusii")
+               FLExit("DMPlex-ExodusII reader not yet implemented")
             case ("triangle", "gmsh", "exodusii")
               ! Get mesh dimension if present
               call get_option(trim(mesh_path)//"/from_file/dimension", mdim, stat)
