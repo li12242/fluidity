@@ -59,8 +59,13 @@ module populate_state_module
   use read_triangle
   use initialise_ocean_forcing_module
   use dmplex_reader
+#ifdef HAVE_PETSC_MODULES
+  use petsc
+#endif
 
   implicit none
+
+#include "petsc_legacy.h"
 
   private
 
@@ -199,6 +204,7 @@ contains
     logical :: from_file, extruded
     integer :: dim, mdim, loc, column_ids
     integer :: quad_family
+    type(DM) :: plex
     
     call tic(TICTOC_ID_IO_READ)
 
@@ -244,8 +250,10 @@ contains
           if (is_active_process) then
             select case (mesh_file_format)
             case("dmplex_exodusii")
-               position = dmplex_read_exodusii_file(trim(mesh_file_name), &
-                    quad_degree=quad_degree, quad_family=quad_family)
+               call dmplex_read_exodusii_file(trim(mesh_file_name), plex)
+               call dmplex_create_coordinate_field(plex, &
+                    quad_degree=quad_degree, quad_family=quad_family, &
+                    boundary_label="Face Sets", field=position)
                mesh=position%mesh
             case ("triangle", "gmsh", "exodusii")
               ! Get mesh dimension if present
@@ -451,6 +459,10 @@ contains
           call insert(states, position, "AdaptedExtrudedPositions")
           call deallocate(position)
           
+        end if
+
+        if (mesh_file_format == "dmplex_exodusii") then
+           call DMDestroy(plex, stat)
         end if
 
     end do external_mesh_loop

@@ -43,7 +43,7 @@ module dmplex_reader
 
   private
 
-  public :: dmplex_read_exodusii_file
+  public :: dmplex_read_exodusii_file, dmplex_create_coordinate_field
 
   interface
 
@@ -83,20 +83,15 @@ module dmplex_reader
 
 contains
 
-  function dmplex_read_exodusii_file(filename, quad_degree, quad_ngi, quad_family) &
-       result (field)
+  subroutine dmplex_read_exodusii_file(filename, plex)
     character(len=*), intent(in) :: filename
-    integer, intent(in), optional, target :: quad_degree
-    integer, intent(in), optional, target :: quad_ngi
-    integer, intent(in), optional :: quad_family
-    type(vector_field) :: field
+    type(DM), intent(out) :: plex
 
-    character(len=FIELD_NAME_LEN) :: partitioner
-    DM :: plex, plex_parallel
+    DM :: plex_parallel
     PetscSF :: parallelSF
     PetscErrorCode :: ierr
 
-    ewrite(2,*) "In dmplex_read_exodusii_file"
+    ewrite(1,*) "In dmplex_read_exodusii_file"
 
     ! Create a DMPlex object for the ExodusII mesh
     call DMPlexCreateExodusFromFile(MPI_COMM_FEMTOOLS, filename, PETSC_TRUE, plex, ierr)
@@ -107,8 +102,7 @@ contains
 
     ! Distribute the DMPlex to all ranks in parallel
     if (isparallel()) then
-       partitioner = "chaco"
-       call DMPlexDistribute(plex, trim(partitioner), 1, parallelSF, plex_parallel, ierr)
+       call DMPlexDistribute(plex, 1, parallelSF, plex_parallel, ierr)
        call DMDestroy(plex, ierr)
        plex = plex_parallel
        if (debug_level() == 2) then
@@ -117,23 +111,16 @@ contains
        end if
     end if
 
-    ! Build Coordinate field from derived DMPlex
-    field = dmplex_create_coordinate_field(plex, quad_degree=quad_degree, &
-         quad_ngi=quad_ngi, quad_family=quad_family, boundary_label="Face Sets")
+    ewrite(1,*) "Finished dmplex_read_exodusii_file"
+  end subroutine dmplex_read_exodusii_file
 
-    call DMDestroy(plex, ierr)
-
-    ewrite(2,*) "Finished dmplex_read_exodusii_file"
-  end function dmplex_read_exodusii_file
-
-  function dmplex_create_coordinate_field(plex, quad_degree, quad_ngi, quad_family, boundary_label) &
-       result (field)
-    DM, intent(in) :: plex
+  subroutine dmplex_create_coordinate_field(plex, quad_degree, quad_ngi, quad_family, boundary_label, field)
+    type(DM), intent(in) :: plex
     integer, intent(in), optional, target :: quad_degree
     integer, intent(in), optional, target :: quad_ngi
     integer, intent(in), optional :: quad_family
     character(len=*), intent(in) :: boundary_label
-    type(vector_field) :: field
+    type(vector_field), intent(out) :: field
 
     type(mesh_type) :: mesh
     type(quadrature_type) :: quad
@@ -146,7 +133,7 @@ contains
     Vec :: plex_coordinates
     PetscErrorCode :: ierr
 
-    ewrite(2,*) "In dmplex_create_coordinate_field"
+    ewrite(1,*) "In dmplex_create_coordinate_field"
 
     call DMGetDimension(plex, dim, ierr)
     call DMPlexGetDepthStratum(plex, 0, vStart, vEnd, ierr)
@@ -197,7 +184,7 @@ contains
     deallocate(sndglno)
     deallocate(boundary_ids)
 
-    ewrite(2,*) "Finished dmplex_create_coordinate_field"
-  end function dmplex_create_coordinate_field
+    ewrite(1,*) "Finished dmplex_create_coordinate_field"
+  end subroutine dmplex_create_coordinate_field
 
 end module dmplex_reader
