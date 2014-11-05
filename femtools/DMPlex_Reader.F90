@@ -36,6 +36,7 @@ module dmplex_reader
   use petsc
 #endif
   use iso_c_binding
+  use halos
 
   implicit none
 
@@ -44,7 +45,7 @@ module dmplex_reader
   private
 
   public :: dmplex_read_gmsh_file, dmplex_read_exodusii_file
-  public :: dmplex_create_coordinate_field
+  public :: dmplex_create_coordinate_field, dmplex_create_halos
 
   interface
 
@@ -88,6 +89,18 @@ module dmplex_reader
        integer(c_int), dimension(nfacets*sloc) :: sndglno
        integer(c_int), dimension(nfacets) :: boundary_ids
      end function dmplex_get_surface_connectivity
+
+     function dmplex_get_halo_send_recv(plex, sf, height, nprocs, nowned, nsend, send_is, nrecv, recv_is) &
+          bind(c) result(ierr)
+       use iso_c_binding
+       implicit none
+       integer(c_int) :: ierr, nowned
+       integer(c_long), value :: plex
+       PetscFortranAddr :: sf
+       integer(c_int), value :: nprocs, height
+       integer(c_int), dimension(nprocs) :: nsend, nrecv
+       integer(c_long), intent(out) :: send_is, recv_is
+     end function dmplex_get_halo_send_recv
 
   end interface
 
@@ -230,5 +243,85 @@ contains
 
     ewrite(1,*) "Finished dmplex_create_coordinate_field"
   end subroutine dmplex_create_coordinate_field
+
+  subroutine dmplex_create_halos(plex, mesh, communicator)
+    type(DM), intent(inout) :: plex
+    type(mesh_type), intent(inout) :: mesh
+    integer, optional, intent(in) :: communicator
+
+    integer :: ierr, comm, nprocs, procno, dim, nowned
+    integer, dimension(:), allocatable :: nsend, nrecv
+    integer, dimension(:), pointer :: sends, receives
+    IS :: sendIS, recvIS
+    PetscSF :: pointSF
+
+    ewrite(1, *) "In dmplex_create_halos"
+
+    assert(continuity(mesh) == 0)
+    assert(.not. associated(mesh%halos))
+    assert(.not. associated(mesh%element_halos))
+    if(present(communicator)) then
+      comm = communicator
+    else
+      comm = MPI_COMM_FEMTOOLS
+    end if
+
+    nprocs = getnprocs(communicator=comm)
+    procno = getprocno(communicator=comm)
+    allocate(nsend(nprocs))
+    allocate(nrecv(nprocs))
+    allocate(mesh%halos(2))
+    allocate(mesh%element_halos(2))
+
+    call DMGetDimension(plex, dim, ierr)
+    call DMGetPointSF(plex, pointSF, ierr)
+
+    ! Build correct level-2 node halo
+    ierr = dmplex_get_halo_send_recv(plex, pointSF, 0, nprocs, nowned, nsend, sendIS, nrecv, recvIS)
+    call ISGetIndicesF90(recvIS, receives, ierr)
+    call ISGetIndicesF90(sendIS, sends, ierr)
+    call allocate(mesh%halos(2), nsend, nrecv, name=trim(mesh%name)//"L2-NodeHalo", &
+         communicator=comm, ordering_scheme=HALO_ORDER_TRAILING_RECEIVES)
+    call set_halo_nowned_nodes(mesh%halos(2), nowned)
+    call set_all_halo_sends(mesh%halos(2), sends)
+    call set_all_halo_receives(mesh%halos(2), receives)
+    call ISRestoreIndicesF90(recvIS, receives, ierr)
+    call ISRestoreIndicesF90(sendIS, sends, ierr)
+    call ISDestroy(recvIS, ierr)
+    call ISDestroy(sendIS, ierr)
+    assert(halo_valid_for_communication(mesh%halos(2)))
+
+    ! Build correct level-2 element halo
+    ierr = dmplex_get_halo_send_recv(plex, pointSF, dim, nprocs, nowned, nsend, sendIS, nrecv, recvIS)
+    call ISGetIndicesF90(recvIS, receives, ierr)
+    call ISGetIndicesF90(sendIS, sends, ierr)
+    call allocate(mesh%element_halos(2), nsend, nrecv, name=trim(mesh%name)//"L2-ElementHalo", &
+         communicator=comm, data_type=HALO_TYPE_ELEMENT, ordering_scheme=HALO_ORDER_TRAILING_RECEIVES)
+    call set_halo_nowned_nodes(mesh%element_halos(2), nowned)
+    call set_all_halo_sends(mesh%element_halos(2), sends)
+    call set_all_halo_receives(mesh%element_halos(2), receives)
+    call ISRestoreIndicesF90(recvIS, receives, ierr)
+    call ISRestoreIndicesF90(sendIS, sends, ierr)
+    call ISDestroy(recvIS, ierr)
+    call ISDestroy(sendIS, ierr)
+
+    call create_global_to_universal_numbering(mesh%element_halos(2))
+    call create_ownership(mesh%element_halos(2))
+    call create_global_to_universal_numbering(mesh%halos(2))
+    call create_ownership(mesh%halos(2))
+
+    assert(trailing_receives_consistent(mesh%element_halos(2)))
+    assert(trailing_receives_consistent(mesh%halos(2)))
+
+    mesh%halos(1) = mesh%halos(2)
+    mesh%halos(1)%name = trim(mesh%name)//"L1-NodeHalo"
+    mesh%element_halos(1) = mesh%element_halos(2)
+    mesh%element_halos(1)%name = trim(mesh%name)//"L1-ElementHalo"
+
+    assert(trailing_receives_consistent(mesh%element_halos(1)))
+    assert(trailing_receives_consistent(mesh%halos(1)))
+
+    ewrite(1, *) "Finished dmplex_create_halos"
+  end subroutine dmplex_create_halos
 
 end module dmplex_reader

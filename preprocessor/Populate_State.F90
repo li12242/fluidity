@@ -409,11 +409,16 @@ contains
                        
           ! If running in parallel, additionally read in halo information and register the elements halo
           if(isparallel()) then
-            if (no_active_processes == 1) then
-              call create_empty_halo(position)
-            else
-              call read_halos(mesh_file_name, position)              
-            end if
+              if (no_active_processes == 1) then
+                 call create_empty_halo(position)
+              else
+                 if (mesh_file_format == "exodusii" .or. mesh_file_format == "gmsh") then
+                    call dmplex_create_halos(plex, position%mesh)
+                 else
+                    call read_halos(mesh_file_name, position)
+                 end if
+              end if
+
             ! Local element ordering needs to be consistent between processes, otherwise
             ! code in Halos_Repair (used in halo construction of derived meshes) will fail
             if (.not. verify_consistent_local_element_numbering(position%mesh)) then
