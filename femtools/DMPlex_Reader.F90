@@ -43,9 +43,19 @@ module dmplex_reader
 
   private
 
-  public :: dmplex_read_exodusii_file, dmplex_create_coordinate_field
+  public :: dmplex_read_gmsh_file, dmplex_read_exodusii_file
+  public :: dmplex_create_coordinate_field
 
   interface
+
+     function dmplex_get_gmsh_plex(filename, plex) &
+          bind(c) result(ierr)
+       use iso_c_binding
+       implicit none
+       integer(c_int) :: ierr
+       character(c_char) :: filename(*)
+       integer(c_long), intent(out) :: plex
+     end function dmplex_get_gmsh_plex
 
      function dmplex_get_mesh_connectivity(plex, nnodes, loc, ndglno) &
           bind(c) result(ierr)
@@ -102,7 +112,8 @@ contains
 
     ! Distribute the DMPlex to all ranks in parallel
     if (isparallel()) then
-       call DMPlexDistribute(plex, 1, parallelSF, plex_parallel, ierr)
+       call DMPlexDistribute(plex, 2, parallelSF, plex_parallel, ierr)
+       call PetscSFDestroy(parallelSF, ierr)
        call DMDestroy(plex, ierr)
        plex = plex_parallel
        if (debug_level() == 2) then
@@ -113,6 +124,39 @@ contains
 
     ewrite(1,*) "Finished dmplex_read_exodusii_file"
   end subroutine dmplex_read_exodusii_file
+
+  subroutine dmplex_read_gmsh_file(filename, plex)
+    character(len=*), intent(in) :: filename
+    type(DM), intent(out) :: plex
+
+    DM :: plex_parallel
+    PetscSF :: parallelSF
+    PetscErrorCode :: ierr
+
+    ewrite(1,*) "In dmplex_read_gmsh_file"
+
+    ! Create a DMPlex object for the Gmsh mesh
+    ierr = dmplex_get_gmsh_plex(filename//C_NULL_CHAR, plex)
+
+    if (debug_level() >= 2) then
+       ewrite(2,*) "Sequential DMPlex derived from Gmsh mesh:"
+       call DMView(plex, PETSC_VIEWER_STDOUT_WORLD, ierr)
+    end if
+
+    ! Distribute the DMPlex to all ranks in parallel
+    if (isparallel()) then
+       call DMPlexDistribute(plex, 2, parallelSF, plex_parallel, ierr)
+       call PetscSFDestroy(parallelSF, ierr)
+       call DMDestroy(plex, ierr)
+       plex = plex_parallel
+       if (debug_level() == 2) then
+          ewrite(2,*) "Distributed DMPlex derived from Gmsh mesh:"
+          call DMView(plex, PETSC_VIEWER_STDOUT_WORLD, ierr)
+       end if
+    end if
+
+    ewrite(1,*) "Finished dmplex_read_gmsh_file"
+  end subroutine dmplex_read_gmsh_file
 
   subroutine dmplex_create_coordinate_field(plex, quad_degree, quad_ngi, quad_family, boundary_label, field)
     type(DM), intent(in) :: plex

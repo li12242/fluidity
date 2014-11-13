@@ -1,5 +1,14 @@
 #include "DMPlex_Reader_C.h"
 
+PetscErrorCode dmplex_get_gmsh_plex(const char filename[], DM *plex)
+{
+  PetscErrorCode ierr;
+
+  PetscFunctionBegin;
+  ierr = DMPlexCreateGmshFromFile(PETSC_COMM_WORLD, filename, PETSC_TRUE, plex);CHKERRQ(ierr);
+  PetscFunctionReturn(0);
+}
+
 PetscErrorCode dmplex_get_mesh_connectivity(DM plex, PetscInt nnodes, PetscInt loc, PetscInt *ndglno)
 {
   PetscInt c, cStart, cEnd, vStart, vEnd, idx, ci, nclosure, point;

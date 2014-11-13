@@ -249,13 +249,19 @@ contains
 
           if (is_active_process) then
             select case (mesh_file_format)
-            case("dmplex_exodusii")
+            case("exodusii")
                call dmplex_read_exodusii_file(trim(mesh_file_name), plex)
                call dmplex_create_coordinate_field(plex, &
                     quad_degree=quad_degree, quad_family=quad_family, &
                     boundary_label="Face Sets", field=position)
                mesh=position%mesh
-            case ("triangle", "gmsh", "exodusii")
+            case("gmsh")
+               call dmplex_read_gmsh_file(trim(mesh_file_name)//".msh", plex)
+               call dmplex_create_coordinate_field(plex, &
+                    quad_degree=quad_degree, quad_family=quad_family, &
+                    boundary_label="Face Sets", field=position)
+               mesh=position%mesh
+            case ("triangle")
               ! Get mesh dimension if present
               call get_option(trim(mesh_path)//"/from_file/dimension", mdim, stat)
               ! Read mesh
@@ -461,7 +467,7 @@ contains
           
         end if
 
-        if (mesh_file_format == "dmplex_exodusii") then
+        if (mesh_file_format == "exodusii" .or. mesh_file_format == "gmsh") then
            call DMDestroy(plex, stat)
         end if
 
